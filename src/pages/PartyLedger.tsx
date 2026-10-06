@@ -1,15 +1,15 @@
 import { useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeftRight, Pencil, Phone, Plus } from 'lucide-react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { ArrowLeft, ArrowLeftRight, Banknote, BookOpen, Pencil, Phone, Plus, Tag, Truck } from 'lucide-react'
 import { PartyForm, PaymentForm } from '../components/forms'
-import { Empty, Gate, PageHeader, Row, Section, Tile } from '../components/ui'
+import { Avatar, Badge, Card, Empty, Gate, IconBadge, PageHeader, Row, Section } from '../components/ui'
 import { useBooks } from '../data/queries'
 import { customerLedger, supplierLedger } from '../lib/books'
 import type { LedgerEntry } from '../lib/books'
 import { rs, shortDate } from '../lib/format'
 import { t } from '../lib/i18n'
 import type { Payment, PartyKind } from '../lib/types'
-import { balanceWord } from './Ledgers'
+import { balanceTone, balanceWord } from './Ledgers'
 
 export default function PartyLedger({ kind }: { kind: PartyKind }) {
   const { id = '' } = useParams()
@@ -39,53 +39,77 @@ export default function PartyLedger({ kind }: { kind: PartyKind }) {
       : e.kind === 'challan'
         ? t('cost {amount}', { amount: rs(e.charge) })
         : t('owed {amount}', { amount: rs(e.charge) })
+  const iconOf = (e: LedgerEntry) =>
+    e.kind === 'sale' ? (
+      <IconBadge icon={Tag} tone="brand" />
+    ) : e.kind === 'challan' ? (
+      <IconBadge icon={Truck} tone="bank" />
+    ) : e.kind === 'payment' ? (
+      <IconBadge icon={Banknote} tone="good" />
+    ) : (
+      <IconBadge icon={BookOpen} />
+    )
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        back={back}
-        title={party.name}
-        subtitle={
-          <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <span>{customer ? t('Customer') : t('Supplier')}</span>
-            {party.phone ? (
-              <a href={`tel:${party.phone.replace(/\s/g, '')}`} className="inline-flex items-center gap-1 font-medium text-brand-deep">
-                <Phone className="h-3.5 w-3.5" aria-hidden />
-                {party.phone}
-              </a>
-            ) : null}
-            {party.notes ? <span>{party.notes}</span> : null}
-          </span>
-        }
-        actions={
-          <button type="button" className="btn-ghost" onClick={() => setEditing(true)}>
-            <Pencil className="h-4 w-4" aria-hidden />
-            {t('Edit')}
-          </button>
-        }
-      />
+    <div className="space-y-5">
+      <Link
+        to={back.to}
+        className="-ml-1 inline-flex items-center gap-1 rounded-lg px-1 py-1 text-sm font-medium text-ink-soft transition hover:text-ink"
+      >
+        <ArrowLeft className="h-4 w-4" aria-hidden />
+        {back.label}
+      </Link>
 
-      <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-stretch">
-        <Tile label={balanceWord(kind, balance)} value={rs(Math.abs(balance))} />
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-1">
+      <Card className="p-5">
+        <div className="flex items-center gap-4">
+          <Avatar name={party.name} size="lg" />
+          <div className="min-w-0 flex-1">
+            <h1 className="truncate text-xl font-semibold tracking-tight">{party.name}</h1>
+            <div className="truncate text-sm text-ink-soft">
+              {customer ? t('Customer') : t('Supplier')}
+              {party.notes ? ` · ${party.notes}` : ''}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            aria-label={t('Edit')}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-ink-soft transition hover:bg-sunk hover:text-ink"
+          >
+            <Pencil className="h-[18px] w-[18px]" aria-hidden />
+          </button>
+        </div>
+
+        <div className="mt-5 rounded-2xl bg-sunk/70 p-4">
+          <Badge tone={balanceTone(kind, balance)}>{balanceWord(kind, balance)}</Badge>
+          <div className="mt-2 text-[2rem] leading-none font-semibold tracking-tight">{rs(Math.abs(balance))}</div>
+        </div>
+
+        <div className="mt-4 grid grid-cols-2 gap-2">
           <button type="button" className="btn-primary" onClick={() => setPaying('new')}>
             <ArrowLeftRight className="h-4 w-4" aria-hidden />
             {customer ? t('Payment received') : t('Payment made')}
           </button>
           <button
             type="button"
-            className="btn-ghost"
+            className="btn-soft"
             onClick={() => navigate(customer ? `/sales/new?customer=${party.id}` : `/challans/new?supplier=${party.id}`)}
           >
             <Plus className="h-4 w-4" aria-hidden />
             {customer ? t('New sale') : t('New challan')}
           </button>
         </div>
-      </div>
+        {party.phone ? (
+          <a href={`tel:${party.phone.replace(/\s/g, '')}`} className="btn-ghost mt-2 w-full">
+            <Phone className="h-4 w-4" aria-hidden />
+            {t('Call')} {party.phone}
+          </a>
+        ) : null}
+      </Card>
 
       <Section title={t('Ledger, newest first')} aside={t('Balance after each')}>
         {entries.length === 0 ? (
-          <Empty title={t('Nothing yet')} />
+          <Empty icon={BookOpen} title={t('Nothing yet')} />
         ) : (
           entries.map((e) => {
             const payment = paymentOf(e)
@@ -95,6 +119,7 @@ export default function PartyLedger({ kind }: { kind: PartyKind }) {
                 key={e.key}
                 to={linkOf(e)}
                 onClick={payment ? () => setPaying(payment) : undefined}
+                leading={iconOf(e)}
                 title={e.detail && e.kind !== 'payment' ? `${e.label} · ${e.detail}` : e.label}
                 sub={[e.date ? shortDate(e.date) : null, e.kind === 'payment' ? e.detail : null, ...amounts]
                   .filter(Boolean)
@@ -115,7 +140,7 @@ export default function PartyLedger({ kind }: { kind: PartyKind }) {
         onDeleted={() => navigate(back.to, { replace: true })}
       />
       <PaymentForm
-        key={paying === 'new' ? 'new' : (paying?.id ?? 'none')}
+        key={`payment:${paying === 'new' ? 'new' : (paying?.id ?? 'closed')}`}
         open={paying !== null}
         payment={paying && paying !== 'new' ? paying : undefined}
         start={customer ? { kind: 'from_customer', customerId: party.id } : { kind: 'to_supplier', supplierId: party.id }}

@@ -5,6 +5,7 @@
  */
 import { useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
+import { Trash2 } from 'lucide-react'
 import { backend } from '../data/backend'
 import { useAction, useBooks } from '../data/queries'
 import { expenseCategories, paymentLabel } from '../lib/books'
@@ -35,17 +36,17 @@ async function settle(work: Promise<unknown>): Promise<boolean> {
   }
 }
 
+/** Save across the bottom of the sheet; Delete, when there is one, as a quiet word beside it. */
 function FormButtons({ busy, onDelete }: { busy: boolean; onDelete?: () => void }) {
   return (
-    <div className="flex items-center justify-between gap-2 pt-2">
+    <div className="flex items-center gap-2 pt-2">
       {onDelete ? (
-        <button type="button" className="btn-danger" onClick={onDelete} disabled={busy}>
+        <button type="button" className="btn-quiet text-bad hover:text-bad" onClick={onDelete} disabled={busy}>
+          <Trash2 className="h-4 w-4" aria-hidden />
           {t('Delete')}
         </button>
-      ) : (
-        <span />
-      )}
-      <button type="submit" className="btn-primary min-w-28" disabled={busy}>
+      ) : null}
+      <button type="submit" className="btn-primary min-h-12 flex-1 text-base" disabled={busy}>
         {busy ? t('Saving…') : t('Save')}
       </button>
     </div>

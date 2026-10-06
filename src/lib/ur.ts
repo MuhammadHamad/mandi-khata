@@ -52,8 +52,6 @@ export const UR: Record<string, string> = {
   animals: 'janwar',
   'damaged animal': 'zakhmi janwar',
   'damaged animals': 'zakhmi janwar',
-  expense: 'kharcha',
-  expenses: 'kharchay',
   Animals: 'Janwar',
   'Walk-in customer': 'Bina khata gahak',
   'Challan #{n}': 'Challan #{n}',
@@ -62,6 +60,7 @@ export const UR: Record<string, string> = {
   Notes: 'Note',
   'Optional.': 'Zaroori nahi.',
   Amount: 'Raqam',
+  '{n} thousand': '{n} hazar',
   All: 'Sab',
   Nothing: 'Kuch nahi',
   'Nothing yet': 'Abhi kuch nahi',
@@ -94,7 +93,6 @@ export const UR: Record<string, string> = {
   'Remove this line': 'Ye line hatayein',
 
   // ---------------------------------------------------------------- home --
-  Overview: 'Hisaab kitaab',
   'New sale': 'Nayi bikri',
   'New challan': 'Naya challan',
   Death: 'Janwar mara',
@@ -110,7 +108,7 @@ export const UR: Record<string, string> = {
   'All challans': 'Sab challan',
   'No animals in stock': 'Koi janwar baqi nahi',
   'Record a challan when you buy a lot of animals.': 'Jab janwar khareedein to challan likhein.',
-  '{animals} left · bought {date}': '{animals} baqi · {date} ko khareede',
+  '{animals} left': '{animals} baqi',
   'Latest sales': 'Haal ki bikri',
   'All sales': 'Sab bikri',
   'No sales yet': 'Abhi koi bikri nahi',
@@ -126,15 +124,11 @@ export const UR: Record<string, string> = {
   'bought {date}': '{date} ko khareeda',
   '{n} in stock': '{n} baqi',
   Sell: 'Bechein',
-  'Bought for': 'Khareed',
   'Sold for': 'Bikri',
   '{n} sold': '{n} bik gaye',
   'Final result': 'Akhri hisaab',
   'Result so far': 'Ab tak ka hisaab',
-  Result: 'Hisaab',
   'Final: every animal is sold or dead': 'Mukammal: sab janwar bik gaye ya mar gaye',
-  '{animals} still to sell': '{animals} abhi bechne hain',
-  'How it is worked out': 'Hisaab kaise bana',
   'Cost of the {animals} sold or dead': 'Bikay ya maray {animals} ki laagat',
   'Expenses on this challan': 'Is challan ke kharchay',
   'In stock: {animals}, which cost {amount}. That cost counts once they are sold or die.':
@@ -143,6 +137,7 @@ export const UR: Record<string, string> = {
   '{n} sold ({damaged} damaged)': '{n} bikay ({damaged} zakhmi)',
   '{n} died': '{n} mare',
   '{amount} each': 'aik ki laagat {amount}',
+  '{sold} sold, {died} died, {left} left': '{sold} bikay, {died} mare, {left} baqi',
   'Losses on this challan': 'Is challan ka nuqsan',
   '{n} died (what they cost)': '{n} mare (in ki laagat)',
   '{n} damaged, sold below cost by': '{n} zakhmi, laagat se itne kam mein bikay',
@@ -158,6 +153,7 @@ export const UR: Record<string, string> = {
   'No expenses linked': 'Koi kharcha nahi likha',
   'Add transport, fodder and the like with Expense above.': 'Gari ka kiraya, chara waghera upar "Kharcha" se likhein.',
   'Delete challan #{n}?': 'Challan #{n} mitayein?',
+  'Delete this challan': 'Ye challan mitayein',
   'It has no sales, deaths or expenses, so nothing else changes.':
     'Is ki koi bikri, maut ya kharcha nahi, is liye aur kuch nahi badlega.',
 
@@ -194,7 +190,7 @@ export const UR: Record<string, string> = {
   'Animals sold': 'Bikay janwar',
   'From which challan': 'Kis challan se',
   'Total price': 'Kul qeemat',
-  'injured or sick, sold cheap': 'zakhmi ya beemar, sasta bika',
+  'injured or sick, sold cheap': 'ya beemar, is liye sasta bika',
   'They cost {amount}': 'In ki laagat {amount}',
   'Add other animals': 'Aur janwar shamil karein',
   'Sale total': 'Bikri ka kul',
@@ -214,6 +210,7 @@ export const UR: Record<string, string> = {
   'Cost of these animals {amount}': 'In janwaron ki laagat {amount}',
   "The credit is on the customer's ledger.": 'Udhaar gahak ke khate mein hai.',
   'Delete sale #{n}?': 'Bikri #{n} mitayein?',
+  'Delete this sale': 'Ye bikri mitayein',
 
   // ------------------------------------------------------------- ledgers --
   'Customers owe you {amount}': 'Gahakon se {amount} lene hain',
@@ -240,6 +237,7 @@ export const UR: Record<string, string> = {
   'bill {amount}': 'bill {amount}',
   'owed {amount}': 'baqaya {amount}',
   'paid {amount}': 'ada {amount}',
+  Call: 'Call karein',
   'Opening balance': 'Purana hisaab',
   'Owed before the app': 'App se pehle ka baqaya',
 
@@ -255,6 +253,7 @@ export const UR: Record<string, string> = {
   'Later payments from customers and to suppliers show here.':
     'Gahakon se aur beopariyon ko baad mein diye gaye paisay yahan dikhenge.',
   Start: 'Shuru',
+  'Balance {amount}': 'Baqaya {amount}',
   'Nothing in this book yet': 'Is hisaab mein abhi kuch nahi',
   'When you started using the app': 'Jab app shuru ki',
   'Received from customer': 'Gahak se paisay mile',

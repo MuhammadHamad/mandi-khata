@@ -2,82 +2,82 @@
 
 @theme {
   --font-sans: 'Hanken Grotesk', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-display: 'Bricolage Grotesque', 'Hanken Grotesk', ui-sans-serif, system-ui, sans-serif;
 
-  /* Hay and pasture: a warm page, white cards, a deep field green. */
-  --color-ground: #f3f0e7;
-  --color-paper: #fffdf7;
-  --color-sunk: #ece7da;
-  --color-line: #ded8c9;
-  --color-line-soft: #e9e4d7;
+  /* A light warm page, white cards, one field green. */
+  --color-ground: #f4f2ec;
+  --color-paper: #ffffff;
+  --color-sunk: #eeebe3;
+  --color-line: #e2ded3;
+  --color-line-soft: #eeebe4;
 
-  --color-ink: #1c2117;
-  --color-ink-soft: #565d4f;
-  --color-ink-faint: #868b7e;
+  --color-ink: #191e16;
+  --color-ink-soft: #596051;
+  --color-ink-faint: #8a8f82;
 
-  --color-brand: #2e6a43;
-  --color-brand-deep: #214f31;
-  --color-brand-wash: #e1ece2;
+  --color-brand: #1f6a43;
+  --color-brand-deep: #165034;
+  --color-brand-wash: #e3efe7;
+  /* The money card on Home: deep green in either theme, white on it. */
+  --color-hero: #1d5c3b;
 
-  /* Status: always shown with an arrow and a word, never colour alone. */
-  --color-good: #1f7a3f;
-  --color-good-wash: #e3f1e6;
-  --color-bad: #b3392b;
-  --color-bad-wash: #f8e3de;
+  /* Status: always with an arrow or a word too, never colour alone. */
+  --color-good: #18773f;
+  --color-good-wash: #e2f2e7;
+  --color-bad: #b23628;
+  --color-bad-wash: #fbe8e4;
   /* Money on credit (udhaar): owed to or by the business. */
-  --color-owed: #8a5a00;
-  --color-owed-wash: #f6ebd3;
-  --color-bank: #2d5b7d;
-  --color-bank-wash: #e2ebf2;
+  --color-owed: #8f5507;
+  --color-owed-wash: #f8ecd8;
+  --color-bank: #275a7f;
+  --color-bank-wash: #e3edf5;
 
-  --color-scrim: #1c2117;
-  --radius-card: 1rem;
+  --color-scrim: #191e16;
+  --radius-card: 1.25rem;
+  /* Cards float on a hairline and a breath of shadow instead of a border. */
+  --shadow-card: 0 0 0 1px rgb(25 30 22 / 0.06), 0 1px 2px rgb(25 30 22 / 0.05);
 }
 
 /* Dark mode follows the phone. Only the colour tokens change. */
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-ground: #121610;
-    --color-paper: #1b2018;
-    --color-sunk: #252b21;
-    --color-line: #343b2f;
-    --color-line-soft: #2a3026;
+    --color-ground: #10140f;
+    --color-paper: #191e17;
+    --color-sunk: #242a21;
+    --color-line: #333a2f;
+    --color-line-soft: #272d24;
 
-    --color-ink: #eef0e8;
-    --color-ink-soft: #b3b9a8;
-    --color-ink-faint: #868d7c;
+    --color-ink: #eef0e9;
+    --color-ink-soft: #b1b7a7;
+    --color-ink-faint: #858c7b;
 
-    --color-brand: #5fae78;
-    --color-brand-deep: #8fd0a2;
-    --color-brand-wash: #1f3326;
+    --color-brand: #5cb27a;
+    --color-brand-deep: #8fd4a6;
+    --color-brand-wash: #1c3224;
+    --color-hero: #1a4a30;
 
-    --color-good: #74c98e;
-    --color-good-wash: #1d3324;
-    --color-bad: #f08b7d;
-    --color-bad-wash: #3a221e;
-    --color-owed: #e3b660;
-    --color-owed-wash: #352b17;
-    --color-bank: #8fb9d8;
-    --color-bank-wash: #1b2833;
+    --color-good: #72cb8f;
+    --color-good-wash: #1b3224;
+    --color-bad: #f1897b;
+    --color-bad-wash: #3b221e;
+    --color-owed: #e6b863;
+    --color-owed-wash: #352a16;
+    --color-bank: #8ebbdb;
+    --color-bank-wash: #1a2733;
 
     --color-scrim: #000000;
+    --shadow-card: 0 0 0 1px rgb(255 255 255 / 0.06);
   }
 }
 
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
   }
 
   body {
     @apply bg-ground font-sans text-ink antialiased;
     margin: 0;
-  }
-
-  h1,
-  h2,
-  h3 {
-    @apply font-display;
   }
 
   /* Figures in columns line up; big standalone figures keep their natural widths. */
@@ -94,18 +94,18 @@
 /* A utility, so the button styles below can @apply it. */
 @utility btn {
   display: inline-flex;
+  min-height: 2.75rem;
   align-items: center;
   justify-content: center;
   gap: --spacing(2);
   border-radius: var(--radius-xl);
   padding-inline: --spacing(4);
-  padding-block: --spacing(2.5);
   font-size: var(--text-sm);
   line-height: var(--text-sm--line-height);
   font-weight: 600;
   white-space: nowrap;
   user-select: none;
-  transition-property: color, background-color, border-color, transform, opacity;
+  transition-property: color, background-color, box-shadow, transform, opacity, filter;
   transition-duration: 150ms;
 
   &:active {
@@ -119,28 +119,38 @@
 
 @layer components {
   .card {
-    @apply rounded-card border border-line bg-paper;
+    @apply rounded-card bg-paper shadow-card;
   }
 
   /* 16px text, so phones do not zoom in when a box is tapped. */
   .field {
-    @apply w-full rounded-xl border border-line bg-paper px-3 py-2.5 text-base text-ink outline-none transition
+    @apply min-h-12 w-full rounded-xl border border-line bg-paper px-3.5 py-2.5 text-base text-ink outline-none transition
       placeholder:text-ink-faint focus:border-brand focus:ring-2 focus:ring-brand/20 disabled:bg-sunk disabled:text-ink-soft;
   }
 
   .label {
-    @apply mb-1.5 block text-sm font-semibold text-ink-soft;
+    @apply mb-1.5 block text-sm font-medium text-ink-soft;
   }
 
   .btn-primary {
-    @apply btn bg-brand text-paper hover:bg-brand-deep;
+    @apply btn bg-brand text-paper shadow-sm hover:bg-brand-deep;
+  }
+
+  /* The quieter partner of a primary action. */
+  .btn-soft {
+    @apply btn bg-brand-wash text-brand-deep hover:brightness-[0.97];
   }
 
   .btn-ghost {
-    @apply btn border border-line bg-paper text-ink hover:bg-sunk;
+    @apply btn bg-paper text-ink shadow-card hover:bg-sunk;
   }
 
   .btn-danger {
-    @apply btn border border-bad/30 bg-bad-wash text-bad hover:bg-bad hover:text-paper;
+    @apply btn bg-bad-wash text-bad hover:bg-bad hover:text-paper;
+  }
+
+  /* Text-only: for things done rarely, such as deleting. */
+  .btn-quiet {
+    @apply btn text-ink-soft hover:bg-sunk hover:text-ink;
   }
 }

@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowLeftRight } from 'lucide-react'
+import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight, Banknote, BookOpen, Landmark, Wallet } from 'lucide-react'
 import { ExpenseForm, PaymentForm } from '../components/forms'
-import { Empty, Gate, PageHeader, Pills, Row, Section, Tile } from '../components/ui'
+import { Empty, Gate, IconBadge, PageHeader, Pills, Row, Section, Stat } from '../components/ui'
 import { useBooks } from '../data/queries'
-import { moneyBook, paymentLabel } from '../lib/books'
+import { moneyBook, paymentDirection, paymentLabel } from '../lib/books'
 import type { MoneyEntry } from '../lib/books'
 import { accountName, monthLabel, rs, runsOf, shortDate } from '../lib/format'
 import { t } from '../lib/i18n'
@@ -35,7 +35,7 @@ export default function Money() {
   )
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <PageHeader
         title={t('Cash & bank')}
         actions={
@@ -45,18 +45,19 @@ export default function Money() {
           </button>
         }
       />
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-        <Tile label={t('Cash in hand')} value={rs(view.money.cash)} />
-        <Tile label={t('Bank')} value={rs(view.money.bank)} />
-        <div className="col-span-2 lg:col-span-1">
-          <Tile label={t('Together')} value={rs(view.money.cash + view.money.bank)} />
-        </div>
+      <div className="grid grid-cols-2 gap-3">
+        <Stat icon={Banknote} tone="brand" label={t('Cash in hand')} value={rs(view.money.cash)} />
+        <Stat icon={Landmark} tone="bank" label={t('Bank')} value={rs(view.money.bank)} />
+      </div>
+      <div className="card flex items-center justify-between gap-3 px-4 py-3">
+        <span className="text-sm font-medium text-ink-soft">{t('Together')}</span>
+        <span className="tnum text-lg font-semibold">{rs(view.money.cash + view.money.bank)}</span>
       </div>
       <Pills
         label={t('Which book')}
         value={show}
         onChange={(b) => setParams(b === 'cash' ? {} : { book: b }, { replace: true })}
-        className="max-w-md"
+        className="sm:max-w-md"
         options={[
           { value: 'cash', label: t('Cash book') },
           { value: 'bank', label: t('Bank book') },
@@ -67,65 +68,82 @@ export default function Money() {
       {show === 'payments' ? (
         <Section title={t('Payments and transfers')}>
           {payments.length === 0 ? (
-            <Empty title={t('No payments yet')}>{t('Later payments from customers and to suppliers show here.')}</Empty>
+            <Empty icon={ArrowLeftRight} title={t('No payments yet')}>
+              {t('Later payments from customers and to suppliers show here.')}
+            </Empty>
           ) : (
-            payments.map((p) => (
-              <Row
-                key={p.id}
-                onClick={() => setPaying(p)}
-                title={paymentLabel(p.kind)}
-                sub={[
-                  shortDate(p.paid_on),
-                  names.get(p.customer_id ?? p.supplier_id ?? ''),
-                  p.account ? accountName(p.account) : null,
-                  p.notes,
-                ]
-                  .filter(Boolean)
-                  .join(' · ')}
-                right={rs(p.amount)}
-              />
-            ))
+            payments.map((p) => {
+              const into = p.account ? paymentDirection(p, p.account) > 0 : false
+              return (
+                <Row
+                  key={p.id}
+                  onClick={() => setPaying(p)}
+                  leading={
+                    p.account === null ? (
+                      <IconBadge icon={ArrowLeftRight} tone="bank" />
+                    ) : into ? (
+                      <IconBadge icon={ArrowDownLeft} tone="good" />
+                    ) : (
+                      <IconBadge icon={ArrowUpRight} />
+                    )
+                  }
+                  title={paymentLabel(p.kind)}
+                  sub={[
+                    shortDate(p.paid_on),
+                    names.get(p.customer_id ?? p.supplier_id ?? ''),
+                    p.account ? accountName(p.account) : null,
+                    p.notes,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
+                  right={rs(p.amount)}
+                />
+              )
+            })
           )}
         </Section>
       ) : book && book.entries.length ? (
         runsOf([...book.entries].reverse(), (e) => (e.date ? e.date.slice(0, 7) : 'opening')).map((run) => (
-          <Section
-            key={run.key}
-            title={run.key === 'opening' ? t('Start') : monthLabel(run.key)}
-            aside={t('Balance after each')}
-          >
+          <Section key={run.key} title={run.key === 'opening' ? t('Start') : monthLabel(run.key)}>
             {run.rows.map((e) => (
               <Row
                 key={e.key}
                 onClick={e.ref.type === 'opening' ? undefined : () => open(e)}
-                title={
-                  <span className="flex items-baseline justify-between gap-2">
-                    <span className="truncate">{e.label}</span>
-                    <span className={`tnum shrink-0 text-sm font-semibold ${e.inflow ? 'text-good' : 'text-ink-soft'}`}>
-                      {e.inflow ? `+ ${rs(e.inflow)}` : `− ${rs(e.outflow)}`}
-                    </span>
+                leading={
+                  e.ref.type === 'opening' ? (
+                    <IconBadge icon={BookOpen} />
+                  ) : e.inflow ? (
+                    <IconBadge icon={ArrowDownLeft} tone="good" />
+                  ) : (
+                    <IconBadge icon={ArrowUpRight} />
+                  )
+                }
+                title={e.label}
+                sub={[e.date ? shortDate(e.date) : null, e.detail].filter(Boolean).join(' · ')}
+                right={
+                  <span className={e.inflow ? 'text-good' : ''}>
+                    {e.inflow ? `+ ${rs(e.inflow)}` : `− ${rs(e.outflow)}`}
                   </span>
                 }
-                sub={[e.date ? shortDate(e.date) : null, e.detail].filter(Boolean).join(' · ')}
-                right={rs(e.balance)}
+                rightSub={t('Balance {amount}', { amount: rs(e.balance) })}
               />
             ))}
           </Section>
         ))
       ) : (
         <div className="card">
-          <Empty title={t('Nothing in this book yet')} />
+          <Empty icon={Wallet} title={t('Nothing in this book yet')} />
         </div>
       )}
 
       <PaymentForm
-        key={paying === 'new' ? 'new' : (paying?.id ?? 'none')}
+        key={`payment:${paying === 'new' ? 'new' : (paying?.id ?? 'closed')}`}
         open={paying !== null}
         payment={paying && paying !== 'new' ? paying : undefined}
         start={{ kind: 'cash_to_bank' }}
         onClose={() => setPaying(null)}
       />
-      <ExpenseForm key={expense?.id ?? 'none'} open={expense !== null} expense={expense ?? undefined} onClose={() => setExpense(null)} />
+      <ExpenseForm key={`expense:${expense?.id ?? 'closed'}`} open={expense !== null} expense={expense ?? undefined} onClose={() => setExpense(null)} />
     </div>
   )
 }

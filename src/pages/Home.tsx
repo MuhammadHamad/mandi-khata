@@ -1,8 +1,33 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowLeftRight, HeartCrack, Receipt, Tag, Truck } from 'lucide-react'
+import {
+  ArrowDownLeft,
+  ArrowLeftRight,
+  ArrowUpRight,
+  Banknote,
+  ChartColumn,
+  HeartCrack,
+  PawPrint,
+  Receipt,
+  Tag,
+  Truck,
+} from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { DeathForm, ExpenseForm, PaymentForm } from '../components/forms'
-import { Badge, Empty, Gain, Gate, PageHeader, Row, Section, Tile, gainParts } from '../components/ui'
+import {
+  Avatar,
+  Badge,
+  Empty,
+  Gain,
+  Gate,
+  IconBadge,
+  NumberBadge,
+  Row,
+  Section,
+  Stat,
+  gainParts,
+} from '../components/ui'
+import type { Tone } from '../components/ui'
 import { useBooks } from '../data/queries'
 import { monthlyReport, saleAnimals } from '../lib/books'
 import { count, dayLabel, monthLabel, rs, shortDate, todayISO } from '../lib/format'
@@ -27,54 +52,74 @@ export default function Home() {
   const profit = month?.profit ?? 0
 
   return (
-    <div className="space-y-6">
-      <PageHeader title={t('Overview')} subtitle={shortDate(today)} />
-
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-        <Link to="/sales/new" className="btn-primary col-span-2 py-3 sm:col-span-1">
-          <Tag className="h-4 w-4" aria-hidden />
-          {t('New sale')}
-        </Link>
-        <Link to="/challans/new" className="btn-ghost py-3">
-          <Truck className="h-4 w-4" aria-hidden />
-          {t('New challan')}
-        </Link>
-        <button type="button" className="btn-ghost py-3" onClick={() => setOpen('death')}>
-          <HeartCrack className="h-4 w-4" aria-hidden />
-          {t('Death')}
-        </button>
-        <button type="button" className="btn-ghost py-3" onClick={() => setOpen('payment')}>
-          <ArrowLeftRight className="h-4 w-4" aria-hidden />
-          {t('Payment')}
-        </button>
-        <button type="button" className="btn-ghost py-3" onClick={() => setOpen('expense')}>
-          <Receipt className="h-4 w-4" aria-hidden />
-          {t('Expense')}
-        </button>
+    <div className="space-y-5">
+      <div className="px-1 text-sm text-ink-soft">
+        {t('Today')} · {shortDate(today)}
       </div>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-        <Tile label={t('Cash in hand')} value={rs(money.cash)} to="/money" />
-        <Tile label={t('Bank')} value={rs(money.bank)} to="/money?book=bank" />
-        <Tile
+      {/* The money in hand: the first thing an owner checks. */}
+      <Link
+        to="/money"
+        className="block rounded-[1.5rem] bg-hero p-5 text-white shadow-lg shadow-hero/25 transition active:scale-[0.99]"
+      >
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-sm font-medium text-white/80">{t('Cash in hand')}</span>
+          <Banknote className="h-5 w-5 text-white/70" aria-hidden />
+        </div>
+        <div className="mt-1.5 text-[2.5rem] leading-none font-semibold tracking-tight sm:text-5xl">{rs(money.cash)}</div>
+        <div className="mt-5 grid grid-cols-2 gap-4 border-t border-white/15 pt-4">
+          <div>
+            <div className="text-xs font-medium text-white/70">{t('Bank')}</div>
+            <div className="mt-0.5 text-lg font-semibold">{rs(money.bank)}</div>
+          </div>
+          <div>
+            <div className="text-xs font-medium text-white/70">{t('Together')}</div>
+            <div className="mt-0.5 text-lg font-semibold">{rs(money.cash + money.bank)}</div>
+          </div>
+        </div>
+      </Link>
+
+      <div className="space-y-2">
+        <Link to="/sales/new" className="btn-primary min-h-14 w-full rounded-2xl text-base">
+          <Tag className="h-5 w-5" aria-hidden />
+          {t('New sale')}
+        </Link>
+        <div className="grid grid-cols-4 gap-2">
+          <Action to="/challans/new" icon={Truck} tone="bank" label={t('New challan')} />
+          <Action onClick={() => setOpen('death')} icon={HeartCrack} tone="bad" label={t('Death')} />
+          <Action onClick={() => setOpen('payment')} icon={ArrowLeftRight} tone="brand" label={t('Payment')} />
+          <Action onClick={() => setOpen('expense')} icon={Receipt} tone="owed" label={t('Expense')} />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Stat
+          icon={ArrowDownLeft}
+          tone="good"
           label={t('Customers owe you')}
           value={rs(balances.receivable)}
           detail={count(owing, t('customer'), t('customers'))}
           to="/ledgers"
         />
-        <Tile
+        <Stat
+          icon={ArrowUpRight}
+          tone="owed"
           label={t('You owe suppliers')}
           value={rs(balances.payable)}
           detail={count(owed, t('supplier'), t('suppliers'))}
           to="/ledgers?tab=suppliers"
         />
-        <Tile
+        <Stat
+          icon={PawPrint}
+          tone="brand"
           label={t('Animals in stock')}
           value={`${stockHead}`}
           detail={stockHead ? t('Cost {amount}', { amount: rs(stockCost) }) : t('None')}
           to="/challans"
         />
-        <Tile
+        <Stat
+          icon={ChartColumn}
+          tone="bank"
           label={monthLabel(today.slice(0, 7))}
           value={rs(Math.abs(profit))}
           status={month ? <Gain value={profit} amount={false} /> : undefined}
@@ -86,25 +131,27 @@ export default function Home() {
       <Section
         title={t('Animals in stock')}
         aside={
-          <Link to="/challans" className="font-medium text-brand-deep">
+          <Link to="/challans" className="font-semibold text-brand-deep">
             {t('All challans')}
           </Link>
         }
       >
         {inStock.length === 0 ? (
-          <Empty title={t('No animals in stock')}>{t('Record a challan when you buy a lot of animals.')}</Empty>
+          <Empty icon={PawPrint} title={t('No animals in stock')}>
+            {t('Record a challan when you buy a lot of animals.')}
+          </Empty>
         ) : (
           inStock.map((c) => (
             <Row
               key={c.challan.id}
               to={`/challans/${c.challan.id}`}
-              title={`#${c.challan.number} · ${c.supplier?.name ?? t('Supplier')}`}
-              sub={t('{animals} left · bought {date}', {
+              leading={<NumberBadge n={c.challan.number} />}
+              title={c.supplier?.name ?? t('Supplier')}
+              sub={t('{animals} left', {
                 animals: c.lines
                   .filter((s) => s.left > 0)
                   .map((s) => `${s.left} ${s.line.animal}`)
                   .join(', '),
-                date: shortDate(c.challan.bought_on),
               })}
               {...gainParts(c.profit, true)}
             />
@@ -115,20 +162,21 @@ export default function Home() {
       <Section
         title={t('Latest sales')}
         aside={
-          <Link to="/sales" className="font-medium text-brand-deep">
+          <Link to="/sales" className="font-semibold text-brand-deep">
             {t('All sales')}
           </Link>
         }
       >
         {sales.length === 0 ? (
-          <Empty title={t('No sales yet')} />
+          <Empty icon={Tag} title={t('No sales yet')} />
         ) : (
           sales.slice(0, 5).map((s) => (
             <Row
               key={s.sale.id}
               to={`/sales/${s.sale.id}`}
-              title={`#${s.sale.number} · ${s.customer?.name ?? t('Walk-in customer')}`}
-              sub={`${dayLabel(s.sale.sold_on, today)} · ${saleAnimals(s)}`}
+              leading={s.customer ? <Avatar name={s.customer.name} /> : <IconBadge icon={Tag} />}
+              title={s.customer?.name ?? t('Walk-in customer')}
+              sub={`${saleAnimals(s)} · ${dayLabel(s.sale.sold_on, today)}`}
               right={rs(s.total)}
               rightSub={
                 s.credit > 0.5 ? (
@@ -146,5 +194,37 @@ export default function Home() {
       <PaymentForm open={open === 'payment'} onClose={() => setOpen(null)} />
       <ExpenseForm open={open === 'expense'} onClose={() => setOpen(null)} />
     </div>
+  )
+}
+
+/** One of the daily jobs: a big picture with its name under it. */
+function Action({
+  to,
+  onClick,
+  icon,
+  tone,
+  label,
+}: {
+  to?: string
+  onClick?: () => void
+  icon: LucideIcon
+  tone: Tone
+  label: string
+}) {
+  const body = (
+    <>
+      <IconBadge icon={icon} tone={tone} size="lg" />
+      <span className="text-center text-xs leading-tight font-semibold">{label}</span>
+    </>
+  )
+  const cls = 'card flex flex-col items-center gap-2 px-1 py-3 transition active:scale-[0.97] hover:shadow-md'
+  return to ? (
+    <Link to={to} className={cls}>
+      {body}
+    </Link>
+  ) : (
+    <button type="button" onClick={onClick} className={cls}>
+      {body}
+    </button>
   )
 }

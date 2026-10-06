@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import type { ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { Pencil, Trash2 } from 'lucide-react'
-import { Badge, Card, ConfirmDialog, Gain, Gate, PageHeader, Row, Section } from '../components/ui'
+import { Pencil, Tag, Trash2 } from 'lucide-react'
+import { Avatar, Badge, Card, ConfirmDialog, Gain, Gate, IconBadge, PageHeader } from '../components/ui'
 import { backend } from '../data/backend'
 import { useAction, useBooks } from '../data/queries'
 import { costOf } from '../lib/books'
@@ -37,85 +37,99 @@ export default function SaleDetail() {
       : t('The money comes out of the books.')
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <PageHeader
         back={{ to: '/sales', label: t('Sales') }}
         title={t('Sale #{n}', { n: s.sale.number })}
-        subtitle={
-          <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            {s.customer ? (
-              <Link to={`/customers/${s.customer.id}`} className="font-medium text-brand-deep">
-                {s.customer.name}
-              </Link>
-            ) : (
-              <span>{t('Walk-in customer')}</span>
-            )}
-            <span>· {shortDate(s.sale.sold_on)}</span>
-            {s.credit > 0.5 ? (
-              <Badge tone="owed">{t('{amount} on credit', { amount: rs(s.credit) })}</Badge>
-            ) : (
-              <Badge tone="good">{t('Paid')}</Badge>
-            )}
-          </span>
-        }
-        actions={
-          <>
-            <Link to={`/sales/${s.sale.id}/edit`} className="btn-ghost">
-              <Pencil className="h-4 w-4" aria-hidden />
-              {t('Edit')}
-            </Link>
-            <button type="button" className="btn-ghost" onClick={() => setConfirming(true)}>
-              <Trash2 className="h-4 w-4" aria-hidden />
-              {t('Delete')}
-            </button>
-          </>
+        subtitle={shortDate(s.sale.sold_on)}
+        corner={
+          <Link to={`/sales/${s.sale.id}/edit`} className="btn-ghost min-h-10">
+            <Pencil className="h-4 w-4" aria-hidden />
+            {t('Edit')}
+          </Link>
         }
       />
 
-      <Section title={t('Animals')}>
-        {s.lines.map(({ line, stats }) => (
-          <Row
-            key={line.id}
-            to={stats ? `/challans/${stats.challan.id}` : undefined}
-            title={
-              <span className="flex items-center gap-2">
-                {line.head} {stats?.line.animal}
-                {line.damaged ? <Badge tone="bad">{t('Damaged')}</Badge> : null}
-              </span>
-            }
-            sub={stats ? t('From challan #{n}', { n: stats.challan.number }) : undefined}
-            right={rs(line.amount)}
-            rightSub={stats ? t('cost {amount}', { amount: rs(costOf(stats.line, line.head)) }) : undefined}
-          />
-        ))}
-      </Section>
-
-      <Card className="space-y-2 p-4 text-sm">
-        <Line label={t('Sale total')} value={rs(s.total)} strong />
-        <Line
-          label={t('Received now ({account})', { account: accountName(s.sale.received_in) })}
-          value={rs(s.sale.received_now)}
-        />
-        <Line label={t('On credit')} value={s.credit > 0.5 ? rs(s.credit) : t('Nothing')} />
-        <div className="border-t border-line-soft pt-2">
-          <Line label={t('Cost of these animals {amount}', { amount: rs(s.cost) })} value={<Gain value={s.profit} />} />
+      {/* Laid out like a bill: who, what, and how it was paid. */}
+      <Card className="overflow-hidden">
+        <div className="flex items-center gap-3 p-4">
+          {s.customer ? <Avatar name={s.customer.name} /> : <IconBadge icon={Tag} />}
+          <div className="min-w-0 flex-1">
+            {s.customer ? (
+              <Link to={`/customers/${s.customer.id}`} className="block truncate font-semibold text-brand-deep">
+                {s.customer.name}
+              </Link>
+            ) : (
+              <div className="font-semibold">{t('Walk-in customer')}</div>
+            )}
+            <div className="text-sm text-ink-soft">{count(s.head, t('animal'), t('animals'))}</div>
+          </div>
+          {s.credit > 0.5 ? (
+            <Badge tone="owed">{t('{amount} on credit', { amount: rs(s.credit) })}</Badge>
+          ) : (
+            <Badge tone="good">{t('Paid')}</Badge>
+          )}
         </div>
-        {s.credit > 0.5 && s.customer ? (
-          <p className="text-xs text-ink-soft">
-            {t("The credit is on the customer's ledger.")}{' '}
-            <Link to={`/customers/${s.customer.id}`} className="font-medium text-brand-deep">
-              {t("Open {name}'s ledger", { name: s.customer.name })}
+
+        <div className="divide-y divide-line-soft border-t border-line-soft">
+          {s.lines.map(({ line, stats }) => (
+            <Link
+              key={line.id}
+              to={stats ? `/challans/${stats.challan.id}` : '#'}
+              className="flex items-start justify-between gap-3 px-4 py-3 transition hover:bg-sunk/50"
+            >
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2 font-medium">
+                  {line.head} {stats?.line.animal}
+                  {line.damaged ? <Badge tone="bad">{t('Damaged')}</Badge> : null}
+                </div>
+                {stats ? (
+                  <div className="mt-0.5 text-[13px] text-ink-soft">
+                    {t('From challan #{n}', { n: stats.challan.number })} ·{' '}
+                    {t('cost {amount}', { amount: rs(costOf(stats.line, line.head)) })}
+                  </div>
+                ) : null}
+              </div>
+              <div className="tnum shrink-0 font-semibold">{rs(line.amount)}</div>
             </Link>
-          </p>
-        ) : null}
+          ))}
+        </div>
+
+        <dl className="space-y-2 border-t border-dashed border-line bg-sunk/40 p-4 text-sm">
+          <Line label={t('Sale total')} value={rs(s.total)} strong />
+          <Line
+            label={t('Received now ({account})', { account: accountName(s.sale.received_in) })}
+            value={rs(s.sale.received_now)}
+          />
+          <Line label={t('On credit')} value={s.credit > 0.5 ? rs(s.credit) : t('Nothing')} />
+        </dl>
+
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line-soft px-4 py-3 text-sm">
+          <span className="text-ink-soft">{t('Cost of these animals {amount}', { amount: rs(s.cost) })}</span>
+          <Gain value={s.profit} />
+        </div>
       </Card>
+
+      {s.credit > 0.5 && s.customer ? (
+        <p className="px-1 text-sm text-ink-soft">
+          {t("The credit is on the customer's ledger.")}{' '}
+          <Link to={`/customers/${s.customer.id}`} className="font-semibold text-brand-deep">
+            {t("Open {name}'s ledger", { name: s.customer.name })}
+          </Link>
+        </p>
+      ) : null}
 
       {s.sale.notes ? (
         <Card className="p-4 text-sm">
-          <h2 className="font-sans text-sm font-semibold text-ink-soft">{t('Notes')}</h2>
-          <p className="mt-1 whitespace-pre-wrap">{s.sale.notes}</p>
+          <h2 className="text-[15px] font-semibold">{t('Notes')}</h2>
+          <p className="mt-1 whitespace-pre-wrap text-ink-soft">{s.sale.notes}</p>
         </Card>
       ) : null}
+
+      <button type="button" className="btn-quiet w-full text-bad hover:text-bad" onClick={() => setConfirming(true)}>
+        <Trash2 className="h-4 w-4" aria-hidden />
+        {t('Delete this sale')}
+      </button>
 
       <ConfirmDialog
         open={confirming}
@@ -140,8 +154,8 @@ export default function SaleDetail() {
 function Line({ label, value, strong = false }: { label: string; value: ReactNode; strong?: boolean }) {
   return (
     <div className="flex items-baseline justify-between gap-3">
-      <span className={strong ? 'font-semibold' : 'text-ink-soft'}>{label}</span>
-      <span className={`tnum ${strong ? 'text-base font-semibold' : ''}`}>{value}</span>
+      <dt className={strong ? 'font-semibold' : 'text-ink-soft'}>{label}</dt>
+      <dd className={`tnum font-semibold ${strong ? 'text-base' : ''}`}>{value}</dd>
     </div>
   )
 }

@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
+import { Languages, LogOut, RotateCcw, Store } from 'lucide-react'
 import { LangSwitch } from '../components/Lang'
-import { Card, ConfirmDialog, ErrorNote, Field, Gate, MoneyInput, PageHeader } from '../components/ui'
+import { Card, ConfirmDialog, ErrorNote, Field, Gate, IconBadge, MoneyInput, PageHeader } from '../components/ui'
 import { useAuth } from '../data/auth'
 import { IS_DEMO, backend } from '../data/backend'
 import { useAction, useBooks } from '../data/queries'
@@ -42,31 +43,34 @@ function SettingsForm({ view }: { view: Derived }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader title={t('Settings')} />
 
-      <Card className="flex flex-wrap items-center justify-between gap-3 p-4 sm:p-5">
-        <div className="min-w-0">
-          <h2 className="font-sans font-semibold">{t('Language')}</h2>
-          <p className="mt-0.5 text-sm text-ink-soft">{t('Words on the screen. Each phone remembers its own choice.')}</p>
+      <Card className="flex flex-wrap items-center gap-3 p-4">
+        <IconBadge icon={Languages} tone="bank" />
+        <div className="min-w-0 flex-1">
+          <h2 className="font-semibold">{t('Language')}</h2>
+          <p className="text-sm text-ink-soft">{t('Words on the screen. Each phone remembers its own choice.')}</p>
         </div>
         <LangSwitch />
       </Card>
 
       <form onSubmit={submit}>
-        <Card className="space-y-4 p-4 sm:p-5">
-          <Field label={t('Business name')}>
-            <input className="field" value={name} onChange={(e) => setName(e.target.value)} />
-          </Field>
-          <div>
-            <h2 className="font-sans font-semibold">{t('Money when you started')}</h2>
-            <p className="mt-0.5 text-sm text-ink-soft">
+        <Card className="space-y-5 p-4 sm:p-5">
+          <div className="flex items-center gap-3">
+            <IconBadge icon={Store} tone="brand" />
+            <h2 className="font-semibold">{t('Business name')}</h2>
+          </div>
+          <input className="field" value={name} onChange={(e) => setName(e.target.value)} aria-label={t('Business name')} />
+          <div className="border-t border-line-soft pt-5">
+            <h2 className="font-semibold">{t('Money when you started')}</h2>
+            <p className="mt-1 text-sm text-ink-soft">
               {t(
                 'What was in the cash box and the bank on the day you began using the app. Every sale, payment and expense since is added to these.',
               )}
             </p>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2">
             <Field label={t('Cash in hand')}>
               <MoneyInput value={cash} onChange={setCash} />
             </Field>
@@ -76,8 +80,8 @@ function SettingsForm({ view }: { view: Derived }) {
           </div>
           <ErrorNote error={save.error} />
           <div className="flex items-center justify-end gap-3">
-            {saved ? <span className="text-sm text-good">{t('Saved')}</span> : null}
-            <button type="submit" className="btn-primary min-w-28" disabled={save.isPending}>
+            {saved ? <span className="text-sm font-medium text-good">{t('Saved')}</span> : null}
+            <button type="submit" className="btn-primary min-w-32" disabled={save.isPending}>
               {save.isPending ? t('Saving…') : t('Save')}
             </button>
           </div>
@@ -85,15 +89,18 @@ function SettingsForm({ view }: { view: Derived }) {
       </form>
 
       {IS_DEMO ? (
-        <Card className="space-y-3 p-4 sm:p-5">
-          <h2 className="font-sans font-semibold">{t('Demo records')}</h2>
+        <Card className="space-y-4 p-4 sm:p-5">
+          <div className="flex items-center gap-3">
+            <IconBadge icon={RotateCcw} tone="owed" />
+            <h2 className="font-semibold">{t('Demo records')}</h2>
+          </div>
           <p className="text-sm text-ink-soft">
             {t(
               'The demo keeps its records in this browser only. Start again with the sample books, or with empty ones to try entering your own.',
             )}
           </p>
-          <div className="flex flex-wrap gap-2">
-            <button type="button" className="btn-ghost" onClick={() => setResetting('sample')}>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <button type="button" className="btn-soft" onClick={() => setResetting('sample')}>
               {t('Load the sample again')}
             </button>
             <button type="button" className="btn-ghost" onClick={() => setResetting('empty')}>
@@ -125,6 +132,7 @@ function SettingsForm({ view }: { view: Derived }) {
             <div className="truncate font-medium">{user.email}</div>
           </div>
           <button type="button" className="btn-ghost" onClick={() => void signOut()}>
+            <LogOut className="h-4 w-4" aria-hidden />
             {t('Sign out')}
           </button>
         </Card>

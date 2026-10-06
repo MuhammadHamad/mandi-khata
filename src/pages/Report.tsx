@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import type { ReactNode } from 'react'
-import { Card, Empty, Gain, Gate, PageHeader } from '../components/ui'
+import { ChartColumn, TrendingDown, TrendingUp } from 'lucide-react'
+import { Badge, Card, Empty, Gate, PageHeader } from '../components/ui'
 import { useBooks } from '../data/queries'
 import { monthlyReport } from '../lib/books'
 import type { MonthRow } from '../lib/books'
@@ -13,7 +14,7 @@ export default function Report() {
   if (!view) return <Gate error={error} ready={false} />
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <PageHeader
         title={t('Monthly report')}
         subtitle={t(
@@ -22,7 +23,7 @@ export default function Report() {
       />
       {months.length === 0 ? (
         <div className="card">
-          <Empty title={t('Nothing to report yet')} />
+          <Empty icon={ChartColumn} title={t('Nothing to report yet')} />
         </div>
       ) : (
         months.map((m) => <Month key={m.month} m={m} />)
@@ -31,15 +32,21 @@ export default function Report() {
   )
 }
 
+/** A month as a sum: sales, less what they cost, less deaths and expenses, is the profit. */
 function Month({ m }: { m: MonthRow }) {
   const animals = (n: number) => count(n, t('animal'), t('animals'))
+  const loss = m.profit < -0.5
+  const Icon = loss ? TrendingDown : TrendingUp
   return (
     <Card className="p-4 sm:p-5">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-xl font-bold">{monthLabel(m.month)}</h2>
-        <Gain value={m.profit} />
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-lg font-semibold">{monthLabel(m.month)}</h2>
+        <Badge tone={loss ? 'bad' : 'good'}>
+          <Icon className="mr-1 h-3.5 w-3.5" aria-hidden />
+          {loss ? t('Loss') : t('Profit')}
+        </Badge>
       </div>
-      <dl className="mt-3 space-y-2 text-sm">
+      <dl className="mt-4 space-y-3 text-sm">
         <Line
           label={t('Sales')}
           note={t('{animals} · {received} paid at sale, {credit} on credit', {
@@ -62,12 +69,13 @@ function Month({ m }: { m: MonthRow }) {
           note={m.byCategory.map((c) => `${c.category} ${rs(c.amount)}`).join(' · ') || undefined}
           value={`− ${rs(m.expenses)}`}
         />
-        <div className="border-t border-line-soft pt-2">
-          <Line label={m.profit < -0.5 ? t('Loss') : t('Profit')} value={rs(Math.abs(m.profit))} strong />
+        <div className="flex items-baseline justify-between gap-3 border-t border-line pt-3">
+          <dt className="font-semibold">{loss ? t('Loss') : t('Profit')}</dt>
+          <dd className={`tnum text-lg font-semibold ${loss ? 'text-bad' : 'text-good'}`}>{rs(Math.abs(m.profit))}</dd>
         </div>
       </dl>
       {m.headDamaged || m.headBought ? (
-        <div className="mt-3 space-y-1 rounded-xl bg-sunk/60 px-3 py-2.5 text-xs text-ink-soft">
+        <div className="mt-4 space-y-1.5 rounded-xl bg-sunk/70 px-3 py-2.5 text-xs leading-relaxed text-ink-soft">
           {m.headDamaged ? (
             <p>
               {t('{animals} sold {amount} below cost. That is already inside the figures above.', {
@@ -90,14 +98,14 @@ function Month({ m }: { m: MonthRow }) {
   )
 }
 
-function Line({ label, note, value, strong = false }: { label: string; note?: string; value: ReactNode; strong?: boolean }) {
+function Line({ label, note, value }: { label: string; note?: string; value: ReactNode }) {
   return (
     <div className="flex items-baseline justify-between gap-3">
       <div className="min-w-0">
-        <dt className={strong ? 'font-semibold' : ''}>{label}</dt>
-        {note ? <dd className="text-xs text-ink-soft">{note}</dd> : null}
+        <dt className="font-medium">{label}</dt>
+        {note ? <dd className="mt-0.5 text-xs leading-snug text-ink-soft">{note}</dd> : null}
       </div>
-      <dd className={`tnum shrink-0 ${strong ? 'text-base font-semibold' : ''}`}>{value}</dd>
+      <dd className="tnum shrink-0 font-semibold">{value}</dd>
     </div>
   )
 }

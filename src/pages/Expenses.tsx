@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { Plus } from 'lucide-react'
+import { Plus, Receipt } from 'lucide-react'
 import { ExpenseForm } from '../components/forms'
-import { Empty, Gate, PageHeader, Row, Section } from '../components/ui'
+import { Empty, Gate, IconBadge, PageHeader, Row, Section } from '../components/ui'
 import { useBooks } from '../data/queries'
 import { accountName, monthLabel, rs, runsOf, shortDate, todayISO } from '../lib/format'
 import { t } from '../lib/i18n'
@@ -20,7 +20,7 @@ export default function Expenses() {
   const thisMonth = list.filter((e) => e.spent_on.startsWith(month)).reduce((sum, e) => sum + e.amount, 0)
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <PageHeader
         title={t('Expenses')}
         subtitle={t('This month: {amount}', { amount: rs(thisMonth) })}
@@ -33,19 +33,22 @@ export default function Expenses() {
       />
       {list.length === 0 ? (
         <div className="card">
-          <Empty title={t('No expenses yet')}>{t('Transport, fodder, rent, wages: anything the business pays for.')}</Empty>
+          <Empty icon={Receipt} title={t('No expenses yet')}>
+            {t('Transport, fodder, rent, wages: anything the business pays for.')}
+          </Empty>
         </div>
       ) : (
         runsOf(list, (e) => e.spent_on.slice(0, 7)).map((run) => (
           <Section
             key={run.key}
             title={monthLabel(run.key)}
-            aside={<span className="tnum">{rs(run.rows.reduce((sum, e) => sum + e.amount, 0))}</span>}
+            aside={<span className="tnum font-medium">{rs(run.rows.reduce((sum, e) => sum + e.amount, 0))}</span>}
           >
             {run.rows.map((e) => (
               <Row
                 key={e.id}
                 onClick={() => setEditing(e)}
+                leading={<IconBadge icon={Receipt} tone="owed" />}
                 title={e.category}
                 sub={[
                   shortDate(e.spent_on),
@@ -62,7 +65,7 @@ export default function Expenses() {
         ))
       )}
       <ExpenseForm
-        key={editing === 'new' ? 'new' : (editing?.id ?? 'none')}
+        key={`expense:${editing === 'new' ? 'new' : (editing?.id ?? 'closed')}`}
         open={editing !== null}
         expense={editing && editing !== 'new' ? editing : undefined}
         onClose={() => setEditing(null)}

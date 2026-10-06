@@ -39,7 +39,7 @@ export function LangSwitch({ className = '' }: { className?: string }) {
     <div
       role="group"
       aria-label={t('Language')}
-      className={`inline-flex shrink-0 rounded-full border border-line bg-sunk p-0.5 text-sm font-semibold ${className}`}
+      className={`inline-flex shrink-0 rounded-full bg-sunk p-1 text-[13px] font-semibold ${className}`}
     >
       {(['ur', 'en'] as const).map((l) => (
         <button
@@ -47,7 +47,7 @@ export function LangSwitch({ className = '' }: { className?: string }) {
           type="button"
           aria-pressed={current === l}
           onClick={() => change(l)}
-          className={`rounded-full px-3 py-1 transition ${current === l ? 'bg-paper text-ink shadow-sm' : 'text-ink-soft hover:text-ink'}`}
+          className={`min-h-8 rounded-full px-3 transition ${current === l ? 'bg-paper text-ink shadow-sm' : 'text-ink-soft hover:text-ink'}`}
         >
           {l === 'ur' ? 'Urdu' : 'English'}
         </button>

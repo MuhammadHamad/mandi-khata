@@ -29,15 +29,15 @@ export default function Login() {
   }
 
   return (
-    <div className="flex min-h-dvh items-center justify-center px-4 py-10">
-      <div className="w-full max-w-sm">
-        <div className="flex items-start justify-between gap-3">
-          <img src="/favicon.svg" alt="" className="h-12 w-12" />
-          <LangSwitch />
-        </div>
-        <h1 className="mt-4 font-display text-3xl font-bold tracking-tight">Mandi App</h1>
-        <p className="mt-1 text-sm text-ink-soft">{t('Challans, sales, ledgers and cash, in one place.')}</p>
-        <form onSubmit={submit} className="card mt-6 space-y-4 p-5">
+    <div className="flex min-h-dvh flex-col px-4 pt-4 pb-8">
+      <div className="flex justify-end">
+        <LangSwitch />
+      </div>
+      <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center">
+        <img src="/favicon.svg" alt="" className="h-14 w-14" />
+        <h1 className="mt-5 text-3xl font-semibold tracking-tight">Mandi App</h1>
+        <p className="mt-1.5 text-ink-soft">{t('Challans, sales, ledgers and cash, in one place.')}</p>
+        <form onSubmit={submit} className="card mt-8 space-y-4 p-5">
           <Field label={t('Email')}>
             <input
               className="field"
@@ -59,11 +59,11 @@ export default function Login() {
             />
           </Field>
           <ErrorNote error={error} />
-          <button type="submit" className="btn-primary w-full" disabled={busy}>
+          <button type="submit" className="btn-primary min-h-12 w-full text-base" disabled={busy}>
             {busy ? t('Signing in…') : t('Sign in')}
           </button>
         </form>
-        <p className="mt-4 text-center text-xs text-ink-soft">{t("Ask the owner for the business's login.")}</p>
+        <p className="mt-5 text-center text-sm text-ink-soft">{t("Ask the owner for the business's login.")}</p>
       </div>
     </div>
   )

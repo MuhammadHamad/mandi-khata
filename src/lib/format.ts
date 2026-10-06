@@ -13,12 +13,13 @@ export function rs(value: number | null | undefined): string {
   return `${sign}Rs ${grouped(Math.abs(n))}`
 }
 
-/** Big amounts the way traders say them: "12.5 lakh", "1.25 crore". Null below a lakh. */
-export function lakh(value: number): string | null {
+/** An amount the way traders say it: "1.25 crore", "12.5 lakh", "52 hazar". Null below a thousand. */
+export function inWords(value: number): string | null {
   const n = Math.abs(value)
   const trim = (x: number) => x.toLocaleString('en-PK', { maximumFractionDigits: 2 })
   if (n >= 10_000_000) return `${trim(value / 10_000_000)} crore`
   if (n >= 100_000) return `${trim(value / 100_000)} lakh`
+  if (n >= 1_000) return t('{n} thousand', { n: trim(value / 1_000) })
   return null
 }
 

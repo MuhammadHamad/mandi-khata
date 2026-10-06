@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus } from 'lucide-react'
-import { Badge, Empty, Gate, PageHeader, Pills, Row, Section } from '../components/ui'
+import { Plus, Tag } from 'lucide-react'
+import { Avatar, Badge, Empty, Gate, IconBadge, PageHeader, Pills, Row, Section } from '../components/ui'
 import { useBooks } from '../data/queries'
 import { saleAnimals } from '../lib/books'
 import { accountName, count, dayLabel, rs, runsOf, todayISO } from '../lib/format'
@@ -20,7 +20,7 @@ export default function Sales() {
   const list = view.sales.filter((s) => (show === 'credit' ? s.credit > 0.5 : show === 'damaged' ? s.damaged : true))
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <PageHeader
         title={t('Sales')}
         subtitle={t('This month: {amount} from {animals}', {
@@ -42,7 +42,7 @@ export default function Sales() {
         label={t('Which sales')}
         value={show}
         onChange={setShow}
-        className="max-w-md"
+        className="sm:max-w-md"
         options={[
           { value: 'all', label: t('All') },
           { value: 'credit', label: t('On credit') },
@@ -51,7 +51,7 @@ export default function Sales() {
       />
       {list.length === 0 ? (
         <div className="card">
-          <Empty title={view.sales.length ? t('No sales match') : t('No sales yet')}>
+          <Empty icon={Tag} title={view.sales.length ? t('No sales match') : t('No sales yet')}>
             {view.sales.length ? null : t('Record one with New sale.')}
           </Empty>
         </div>
@@ -60,19 +60,16 @@ export default function Sales() {
           <Section
             key={day.key}
             title={dayLabel(day.key, today)}
-            aside={<span className="tnum">{rs(day.rows.reduce((sum, s) => sum + s.total, 0))}</span>}
+            aside={<span className="tnum font-medium">{rs(day.rows.reduce((sum, s) => sum + s.total, 0))}</span>}
           >
             {day.rows.map((s) => (
               <Row
                 key={s.sale.id}
                 to={`/sales/${s.sale.id}`}
-                title={`#${s.sale.number} · ${s.customer?.name ?? t('Walk-in customer')}`}
-                sub={
-                  <span className="flex items-center gap-2">
-                    <span className="truncate">{saleAnimals(s)}</span>
-                    {s.damaged ? <Badge tone="bad">{t('Damaged')}</Badge> : null}
-                  </span>
-                }
+                leading={s.customer ? <Avatar name={s.customer.name} /> : <IconBadge icon={Tag} />}
+                title={s.customer?.name ?? t('Walk-in customer')}
+                sub={`#${s.sale.number} · ${saleAnimals(s)}`}
+                below={s.damaged ? <Badge tone="bad">{t('Damaged')}</Badge> : undefined}
                 right={rs(s.total)}
                 rightSub={
                   s.credit > 0.5 ? (

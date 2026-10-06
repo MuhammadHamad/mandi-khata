@@ -2,6 +2,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import {
   BookUser,
   ChartColumn,
+  ChevronRight,
   Ellipsis,
   House,
   LogOut,
@@ -17,8 +18,10 @@ import { IS_DEMO } from '../data/backend'
 import { useBooks } from '../data/queries'
 import { t } from '../lib/i18n'
 import { LangSwitch } from './Lang'
+import { IconBadge } from './ui'
+import type { Tone } from './ui'
 
-type NavItem = { to: string; label: string; Icon: LucideIcon; end?: boolean }
+type NavItem = { to: string; label: string; Icon: LucideIcon; end?: boolean; tone?: Tone }
 
 // Built on each render, so the labels follow the chosen language.
 const mainNav = (): NavItem[] => [
@@ -29,51 +32,65 @@ const mainNav = (): NavItem[] => [
 ]
 
 const moreNav = (): NavItem[] => [
-  { to: '/money', label: t('Cash & bank'), Icon: Wallet },
-  { to: '/expenses', label: t('Expenses'), Icon: Receipt },
-  { to: '/report', label: t('Monthly report'), Icon: ChartColumn },
-  { to: '/settings', label: t('Settings'), Icon: Settings },
+  { to: '/money', label: t('Cash & bank'), Icon: Wallet, tone: 'brand' },
+  { to: '/expenses', label: t('Expenses'), Icon: Receipt, tone: 'owed' },
+  { to: '/report', label: t('Monthly report'), Icon: ChartColumn, tone: 'bank' },
+  { to: '/settings', label: t('Settings'), Icon: Settings, tone: 'neutral' },
 ]
 
 /** Pages reached from the More tab still light it up on a phone. */
 const UNDER_MORE = ['/more', '/money', '/expenses', '/report', '/settings']
 
+/** Long forms take the whole phone screen, with their Save button pinned where the tabs were. */
+const isFormPage = (pathname: string) => /\/(new|edit)$/.test(pathname)
+
+function Brand({ name }: { name: string }) {
+  return (
+    <div className="flex min-w-0 items-center gap-2.5">
+      <img src="/favicon.svg" alt="" className="h-8 w-8 shrink-0" />
+      <span className="truncate text-[17px] font-semibold tracking-tight">{name || ' '}</span>
+      {IS_DEMO ? (
+        <span
+          title={t('Demo · records stay in this browser')}
+          className="shrink-0 rounded-full bg-owed-wash px-2 py-0.5 text-[11px] font-semibold text-owed"
+        >
+          Demo
+        </span>
+      ) : null}
+    </div>
+  )
+}
+
 export default function AppShell() {
   const { user, signOut } = useAuth()
   const { view } = useBooks()
+  const { pathname } = useLocation()
   const name = view?.book.settings.business_name ?? ''
   const more = moreNav()
+  const formPage = isFormPage(pathname)
 
   return (
     <div className="min-h-dvh lg:flex">
-      {IS_DEMO ? (
-        <div className="fixed inset-x-0 top-0 z-40 h-6 bg-owed text-center text-[11px] leading-6 font-semibold tracking-wide text-paper uppercase">
-          {t('Demo · records stay in this browser')}
-        </div>
-      ) : null}
-
       {/* Sidebar, on a big screen */}
-      <aside
-        className={`sticky hidden h-dvh w-60 shrink-0 flex-col border-r border-line bg-paper px-4 py-6 lg:flex ${IS_DEMO ? 'top-6 h-[calc(100dvh-1.5rem)]' : 'top-0'}`}
-      >
-        <div className="truncate px-2 font-display text-lg font-bold" title={name}>
-          {name || ' '}
+      <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r border-line-soft bg-paper px-4 py-5 lg:flex">
+        <div className="px-2">
+          <Brand name={name} />
         </div>
-        <LangSwitch className="mx-2 mt-3 self-start" />
-        <nav className="mt-6 flex flex-col gap-1">
+        <LangSwitch className="mx-2 mt-4 self-start" />
+        <nav className="mt-6 flex flex-col gap-0.5">
           {[...mainNav(), ...more.slice(0, 3)].map((item) => (
             <SideLink key={item.to} item={item} />
           ))}
         </nav>
-        <div className="mt-auto space-y-1 border-t border-line-soft pt-4">
+        <div className="mt-auto space-y-0.5 border-t border-line-soft pt-4">
           <SideLink item={more[3]} />
           {!IS_DEMO && user ? (
             <>
-              <div className="truncate px-3 pt-1 text-xs text-ink-faint">{user.email}</div>
+              <div className="truncate px-3 pt-2 pb-1 text-xs text-ink-faint">{user.email}</div>
               <button
                 type="button"
                 onClick={() => void signOut()}
-                className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm text-ink-soft transition hover:bg-sunk hover:text-ink"
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-ink-soft transition hover:bg-sunk hover:text-ink"
               >
                 <LogOut className="h-[18px] w-[18px]" aria-hidden />
                 {t('Sign out')}
@@ -85,37 +102,30 @@ export default function AppShell() {
 
       <div className="min-w-0 flex-1">
         {/* Header, on a phone */}
-        <header
-          className={`sticky z-30 flex items-center justify-between gap-2 border-b border-line bg-ground/95 px-4 py-2.5 backdrop-blur lg:hidden ${IS_DEMO ? 'top-6' : 'top-0'}`}
-        >
-          <div className="min-w-0 truncate font-display text-base font-bold">{name || ' '}</div>
-          <div className="flex shrink-0 items-center gap-1">
-            <LangSwitch />
-            <NavLink
-              to="/settings"
-              aria-label={t('Settings')}
-              className="-mr-2 rounded-lg p-2 text-ink-soft transition hover:bg-sunk"
-            >
-              <Settings className="h-5 w-5" aria-hidden />
-            </NavLink>
-          </div>
+        <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b border-line-soft bg-ground/90 px-4 backdrop-blur lg:hidden">
+          <Brand name={name} />
+          <LangSwitch />
         </header>
 
         <main
-          className={`mx-auto w-full max-w-5xl px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] sm:px-6 lg:pb-12 ${IS_DEMO ? 'pt-5 lg:pt-12' : 'pt-5 lg:pt-8'}`}
+          className={`mx-auto w-full max-w-4xl px-4 pt-5 sm:px-6 lg:pt-8 ${
+            formPage ? 'pb-0 lg:pb-12' : 'pb-[calc(6rem+env(safe-area-inset-bottom))] lg:pb-12'
+          }`}
         >
           <Outlet />
         </main>
       </div>
 
       {/* Tabs, on a phone */}
-      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-paper/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
-        <div className="mx-auto flex max-w-lg">
-          {[...mainNav(), { to: '/more', label: t('More'), Icon: Ellipsis }].map((item) => (
-            <TabLink key={item.to} item={item} />
-          ))}
-        </div>
-      </nav>
+      {formPage ? null : (
+        <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-line-soft bg-paper/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
+          <div className="mx-auto flex max-w-lg">
+            {[...mainNav(), { to: '/more', label: t('More'), Icon: Ellipsis }].map((item) => (
+              <TabLink key={item.to} item={item} />
+            ))}
+          </div>
+        </nav>
+      )}
     </div>
   )
 }
@@ -126,7 +136,7 @@ function SideLink({ item: { to, label, Icon, end } }: { item: NavItem }) {
       to={to}
       end={end}
       className={({ isActive }) =>
-        `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
+        `flex items-center gap-3 rounded-xl px-3 py-2.5 text-[15px] font-medium transition ${
           isActive ? 'bg-brand-wash text-brand-deep' : 'text-ink-soft hover:bg-sunk hover:text-ink'
         }`
       }
@@ -145,15 +155,19 @@ function TabLink({ item: { to, label, Icon, end } }: { item: NavItem }) {
       to={to}
       end={end}
       className={({ isActive }) =>
-        `flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-medium transition ${
+        `flex flex-1 flex-col items-center gap-1 pt-2 pb-1.5 text-[11px] font-semibold transition ${
           isActive || underMore ? 'text-brand-deep' : 'text-ink-faint'
         }`
       }
     >
       {({ isActive }) => (
         <>
-          <span className={`rounded-full px-4 py-1 transition ${isActive || underMore ? 'bg-brand-wash' : ''}`}>
-            <Icon className="h-5 w-5" aria-hidden />
+          <span
+            className={`flex h-8 w-14 items-center justify-center rounded-full transition ${
+              isActive || underMore ? 'bg-brand-wash' : ''
+            }`}
+          >
+            <Icon className="h-[22px] w-[22px]" aria-hidden />
           </span>
           {label}
         </>
@@ -167,12 +181,13 @@ export function MorePage() {
   const { user, signOut } = useAuth()
   return (
     <div className="space-y-5">
-      <h1 className="font-display text-2xl font-bold tracking-tight">{t('More')}</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">{t('More')}</h1>
       <div className="card divide-y divide-line-soft overflow-hidden">
-        {moreNav().map(({ to, label, Icon }) => (
-          <NavLink key={to} to={to} className="flex items-center gap-3 px-4 py-3.5 font-medium transition hover:bg-sunk/60">
-            <Icon className="h-5 w-5 text-ink-soft" aria-hidden />
-            {label}
+        {moreNav().map(({ to, label, Icon, tone }) => (
+          <NavLink key={to} to={to} className="flex items-center gap-3 px-4 py-3 font-medium transition hover:bg-sunk/50 active:bg-sunk">
+            <IconBadge icon={Icon} tone={tone} />
+            <span className="flex-1">{label}</span>
+            <ChevronRight className="h-4 w-4 text-ink-faint" aria-hidden />
           </NavLink>
         ))}
       </div>
