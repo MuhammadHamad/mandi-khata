@@ -1,0 +1,94 @@
+import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { Plus, Search } from 'lucide-react'
+import { PartyForm } from '../components/forms'
+import { Empty, Gate, PageHeader, Pills, Row, Section } from '../components/ui'
+import { useBooks } from '../data/queries'
+import { rs } from '../lib/format'
+import { t } from '../lib/i18n'
+import type { PartyKind } from '../lib/types'
+
+export default function Ledgers() {
+  const { view, error } = useBooks()
+  const [params, setParams] = useSearchParams()
+  const [search, setSearch] = useState('')
+  const [adding, setAdding] = useState(false)
+  const kind: PartyKind = params.get('tab') === 'suppliers' ? 'supplier' : 'customer'
+  if (!view) return <Gate error={error} ready={false} />
+
+  const customers = kind === 'customer'
+  const balances = customers ? view.balances.customers : view.balances.suppliers
+  const parties = (customers ? view.book.customers : view.book.suppliers)
+    .filter((p) => p.name.toLowerCase().includes(search.trim().toLowerCase()))
+    .map((p) => ({ p, balance: balances.get(p.id) ?? 0 }))
+    .sort((a, b) => b.balance - a.balance || a.p.name.localeCompare(b.p.name))
+
+  return (
+    <div className="space-y-5">
+      <PageHeader
+        title={t('Ledgers')}
+        subtitle={
+          customers
+            ? t('Customers owe you {amount}', { amount: rs(view.balances.receivable) })
+            : t('You owe suppliers {amount}', { amount: rs(view.balances.payable) })
+        }
+        actions={
+          <button type="button" className="btn-primary" onClick={() => setAdding(true)}>
+            <Plus className="h-4 w-4" aria-hidden />
+            {customers ? t('New customer') : t('New supplier')}
+          </button>
+        }
+      />
+      <Pills
+        label={t('Customers or suppliers')}
+        value={kind}
+        onChange={(k) => setParams(k === 'supplier' ? { tab: 'suppliers' } : {}, { replace: true })}
+        className="max-w-md"
+        options={[
+          { value: 'customer', label: t('Customers') },
+          { value: 'supplier', label: t('Suppliers') },
+        ]}
+      />
+      <label className="relative block max-w-md">
+        <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-ink-faint" aria-hidden />
+        <input
+          className="field pl-9"
+          placeholder={customers ? t('Find a customer') : t('Find a supplier')}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          aria-label={customers ? t('Find a customer') : t('Find a supplier')}
+        />
+      </label>
+      <Section>
+        {parties.length === 0 ? (
+          <Empty title={search ? t('Nobody matches') : customers ? t('No customers yet') : t('No suppliers yet')}>
+            {search
+              ? null
+              : customers
+                ? t('They are added from a sale, or with New customer.')
+                : t('They are added from a challan, or with New supplier.')}
+          </Empty>
+        ) : (
+          parties.map(({ p, balance }) => (
+            <Row
+              key={p.id}
+              to={`/${kind}s/${p.id}`}
+              title={p.name}
+              sub={p.phone ?? undefined}
+              right={Math.abs(balance) < 0.5 ? '—' : rs(Math.abs(balance))}
+              rightSub={balanceWord(kind, balance)}
+            />
+          ))
+        )}
+      </Section>
+      <PartyForm kind={kind} open={adding} onClose={() => setAdding(false)} />
+    </div>
+  )
+}
+
+/** What a balance means, in words: "owes you", "you owe", "advance", "settled". */
+export function balanceWord(kind: PartyKind, balance: number): string {
+  if (Math.abs(balance) < 0.5) return t('Settled')
+  if (kind === 'customer') return balance > 0 ? t('Owes you') : t('Paid in advance')
+  return balance > 0 ? t('You owe') : t('You paid in advance')
+}

@@ -1,0 +1,36 @@
+{
+  "name": "mandi-app",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:demo": "VITE_DEMO=1 vite --port 5175",
+    "build": "tsc -b && vite build",
+    "build:demo": "tsc -b && VITE_DEMO=1 vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -b",
+    "verify": "tsx scripts/verify.ts && tsx scripts/check-i18n.ts",
+    "check:i18n": "tsx scripts/check-i18n.ts"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.117.2",
+    "@tanstack/react-query": "^5.104.1",
+    "lucide-react": "^1.52.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-router-dom": "^7.18.4"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.3.16",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/node": "^24.19.1",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "tailwindcss": "^4.3.3",
+    "tsx": "^4.23.15",
+    "typescript": "~6.0.2",
+    "vite": "^8.3.3"
+  }
+}
