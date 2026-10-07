@@ -35,7 +35,7 @@ export default function Login() {
       </div>
       <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center">
         <img src="/favicon.svg" alt="" className="h-14 w-14" />
-        <h1 className="mt-5 text-3xl font-semibold tracking-tight">Mandi App</h1>
+        <h1 className="mt-5 text-3xl font-semibold tracking-tight">Mandi Khata</h1>
         <p className="mt-1.5 text-ink-soft">{t('Challans, sales, ledgers and cash, in one place.')}</p>
         <form onSubmit={submit} className="card mt-8 space-y-4 p-5">
           <Field label={t('Email')}>

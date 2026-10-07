@@ -1,4 +1,4 @@
-# Mandi App
+# Mandi Khata
 
 Records for an animal market business: challans (bulk purchases of animals), sales, deaths, payments and
 expenses, with the ledgers and reports worked out from them.
