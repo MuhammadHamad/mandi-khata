@@ -21,6 +21,7 @@ import {
   Gain,
   Gate,
   IconBadge,
+  MoneyCard,
   NumberBadge,
   Row,
   Section,
@@ -58,26 +59,16 @@ export default function Home() {
       </div>
 
       {/* The money in hand: the first thing an owner checks. */}
-      <Link
+      <MoneyCard
         to="/money"
-        className="block rounded-[1.5rem] bg-hero p-5 text-white shadow-lg shadow-hero/25 transition active:scale-[0.99]"
-      >
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-sm font-medium text-white/80">{t('Cash in hand')}</span>
-          <Banknote className="h-5 w-5 text-white/70" aria-hidden />
-        </div>
-        <div className="mt-1.5 text-[2.5rem] leading-none font-semibold tracking-tight sm:text-5xl">{rs(money.cash)}</div>
-        <div className="mt-5 grid grid-cols-2 gap-4 border-t border-white/15 pt-4">
-          <div>
-            <div className="text-xs font-medium text-white/70">{t('Bank')}</div>
-            <div className="mt-0.5 text-lg font-semibold">{rs(money.bank)}</div>
-          </div>
-          <div>
-            <div className="text-xs font-medium text-white/70">{t('Together')}</div>
-            <div className="mt-0.5 text-lg font-semibold">{rs(money.cash + money.bank)}</div>
-          </div>
-        </div>
-      </Link>
+        label={t('Cash in hand')}
+        icon={Banknote}
+        value={money.cash}
+        parts={[
+          { label: t('Bank'), value: money.bank },
+          { label: t('Together'), value: money.cash + money.bank },
+        ]}
+      />
 
       <div className="space-y-2">
         <Link to="/sales/new" className="btn-primary min-h-14 w-full rounded-2xl text-base">

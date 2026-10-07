@@ -19,7 +19,7 @@ import type {
   Sale,
   SaleLine,
 } from './types'
-import { accountName } from './format'
+import { accountName, rs } from './format'
 import { t } from './i18n'
 
 /** What a number of animals from one line cost: the line's cost spread evenly over its head. */
@@ -423,8 +423,12 @@ export type MoneyEntry = {
   label: string
   detail: string
   ref: { type: 'opening' | 'sale' | 'challan' | 'payment' | 'expense'; id: string | null }
+  /** The account the money went into or out of. Null on the balance sheet for the opening row and transfers. */
+  account: Account | null
   inflow: number
   outflow: number
+  /** On the balance sheet, a transfer between cash and bank: it moves money without changing the total. */
+  moved: number
   balance: number
 }
 
@@ -461,54 +465,70 @@ export function paymentDirection(p: Payment, account: Account): number {
   }
 }
 
-export function moneyBook(book: Book, account: Account): { entries: MoneyEntry[]; balance: number } {
+/**
+ * Every rupee in and out of one account, oldest first, with the balance after each.
+ * 'both' is the balance sheet: cash and bank as one pot, where a transfer between them is shown but changes nothing.
+ */
+export function moneyBook(book: Book, account: Account | 'both'): { entries: MoneyEntry[]; balance: number } {
   const customers = new Map(book.customers.map((c) => [c.id, c.name]))
   const suppliers = new Map(book.suppliers.map((s) => [s.id, s.name]))
   const challanNumbers = new Map(book.challans.map((c) => [c.id, c.number]))
+  const counts = (a: Account) => account === 'both' || account === a
   type Row = Omit<MoneyEntry, 'balance'> & { order: string }
   const rows: Row[] = []
-  const opening = account === 'cash' ? book.settings.opening_cash : book.settings.opening_bank
-  if (opening) {
+  const { opening_cash, opening_bank } = book.settings
+  const opening = account === 'both' ? opening_cash + opening_bank : account === 'cash' ? opening_cash : opening_bank
+  if (opening || (account === 'both' && (opening_cash || opening_bank))) {
     rows.push({
       key: 'opening',
       date: null,
       label: t('Opening balance'),
-      detail: t('When you started using the app'),
+      detail:
+        account === 'both'
+          ? `${t('Cash')} ${rs(opening_cash)} · ${t('Bank')} ${rs(opening_bank)}`
+          : t('When you started using the app'),
       ref: { type: 'opening', id: null },
+      account: account === 'both' ? null : account,
       inflow: Math.max(opening, 0),
       outflow: Math.max(-opening, 0),
+      moved: 0,
       order: '',
     })
   }
   for (const s of book.sales) {
-    if (s.received_in !== account || s.received_now <= 0) continue
+    if (!counts(s.received_in) || s.received_now <= 0) continue
     rows.push({
       key: `sale:${s.id}`,
       date: s.sold_on,
       label: t('Sale #{n}', { n: s.number }),
       detail: s.customer_id ? (customers.get(s.customer_id) ?? t('Customer')) : t('Walk-in customer'),
       ref: { type: 'sale', id: s.id },
+      account: s.received_in,
       inflow: s.received_now,
       outflow: 0,
+      moved: 0,
       order: s.created_at,
     })
   }
   for (const c of book.challans) {
-    if (c.paid_from !== account || c.paid_now <= 0) continue
+    if (!counts(c.paid_from) || c.paid_now <= 0) continue
     rows.push({
       key: `challan:${c.id}`,
       date: c.bought_on,
       label: t('Challan #{n}', { n: c.number }),
       detail: suppliers.get(c.supplier_id) ?? t('Supplier'),
       ref: { type: 'challan', id: c.id },
+      account: c.paid_from,
       inflow: 0,
       outflow: c.paid_now,
+      moved: 0,
       order: c.created_at,
     })
   }
   for (const p of book.payments) {
-    const dir = paymentDirection(p, account)
-    if (!dir) continue
+    const transfer = p.account === null
+    const dir = account === 'both' ? (transfer ? 0 : paymentDirection(p, p.account!)) : paymentDirection(p, account)
+    if (!dir && !(account === 'both' && transfer)) continue
     const who =
       p.kind === 'from_customer'
         ? customers.get(p.customer_id ?? '')
@@ -521,13 +541,15 @@ export function moneyBook(book: Book, account: Account): { entries: MoneyEntry[]
       label: paymentLabel(p.kind),
       detail: [who, p.notes].filter(Boolean).join(' · '),
       ref: { type: 'payment', id: p.id },
+      account: account === 'both' ? p.account : account,
       inflow: dir > 0 ? p.amount : 0,
       outflow: dir < 0 ? p.amount : 0,
+      moved: account === 'both' && transfer ? p.amount : 0,
       order: p.created_at,
     })
   }
   for (const e of book.expenses) {
-    if (e.paid_from !== account) continue
+    if (!counts(e.paid_from)) continue
     const challan = e.challan_id ? challanNumbers.get(e.challan_id) : undefined
     rows.push({
       key: `expense:${e.id}`,
@@ -535,8 +557,10 @@ export function moneyBook(book: Book, account: Account): { entries: MoneyEntry[]
       label: e.category,
       detail: [challan ? t('Challan #{n}', { n: challan }) : null, e.notes].filter(Boolean).join(' · '),
       ref: { type: 'expense', id: e.id },
+      account: e.paid_from,
       inflow: 0,
       outflow: e.amount,
+      moved: 0,
       order: e.created_at,
     })
   }

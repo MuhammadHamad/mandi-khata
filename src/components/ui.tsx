@@ -120,6 +120,50 @@ export function Avatar({ name, size = 'md' }: { name: string; size?: 'md' | 'lg'
 
 // ------------------------------------------------------------- figures --
 
+/** The big green money card: one amount in large type, and the amounts that sit beside it underneath. */
+export function MoneyCard({
+  label,
+  icon: Icon,
+  value,
+  parts,
+  to,
+}: {
+  label: string
+  icon: LucideIcon
+  value: number
+  parts: { label: string; value: number; icon?: LucideIcon }[]
+  to?: string
+}) {
+  const body = (
+    <>
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-sm font-medium text-white/80">{label}</span>
+        <Icon className="h-5 w-5 text-white/70" aria-hidden />
+      </div>
+      <div className="tnum mt-1.5 text-[2.5rem] leading-none font-semibold tracking-tight sm:text-5xl">{rs(value)}</div>
+      <div className="mt-5 grid grid-cols-2 gap-4 border-t border-white/15 pt-4">
+        {parts.map(({ label: partLabel, value: partValue, icon: PartIcon }) => (
+          <div key={partLabel} className="min-w-0">
+            <div className="flex items-center gap-1.5 text-xs font-medium text-white/70">
+              {PartIcon ? <PartIcon className="h-3.5 w-3.5 shrink-0" aria-hidden /> : null}
+              {partLabel}
+            </div>
+            <div className="tnum mt-0.5 text-lg font-semibold sm:text-xl">{rs(partValue)}</div>
+          </div>
+        ))}
+      </div>
+    </>
+  )
+  const cls = 'block rounded-[1.5rem] bg-hero p-5 text-white shadow-lg shadow-hero/25'
+  return to ? (
+    <Link to={to} className={`${cls} transition active:scale-[0.99]`}>
+      {body}
+    </Link>
+  ) : (
+    <div className={cls}>{body}</div>
+  )
+}
+
 /**
  * One figure at a glance, with its picture. The value keeps the page's own
  * ink; any judgement on it (profit or loss) sits under it as `status`.

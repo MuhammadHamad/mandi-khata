@@ -13,6 +13,12 @@ export function rs(value: number | null | undefined): string {
   return `${sign}Rs ${grouped(Math.abs(n))}`
 }
 
+/** An amount without "Rs" or sign, for a ledger column whose heading already says which way the money went. */
+export function figure(value: number): string {
+  const n = Math.round(Math.abs(Number(value)))
+  return Number.isFinite(n) ? grouped(n) : '0'
+}
+
 /** An amount the way traders say it: "1.25 crore", "12.5 lakh", "52 hazar". Null below a thousand. */
 export function inWords(value: number): string | null {
   const n = Math.abs(value)

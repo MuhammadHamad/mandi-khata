@@ -285,6 +285,16 @@ async function checkIdentities(label: string, book: Book): Promise<void> {
     assert.equal(r2(d.money.cash + d.money.bank), r2(expected))
     assert.equal(r2(moneyBook(book, 'cash').balance), r2(d.money.cash))
   })
+  await check(`${label}: the balance sheet ends on cash plus bank, and transfers change nothing`, () => {
+    const sheet = moneyBook(book, 'both')
+    assert.equal(r2(sheet.balance), r2(d.money.cash + d.money.bank))
+    const moved = sheet.entries.filter((e) => e.moved > 0)
+    assert.equal(moved.length, book.payments.filter((p) => p.account === null).length)
+    for (const e of moved) assert.equal(e.inflow + e.outflow, 0)
+    const movements = (account: 'cash' | 'bank' | 'both') =>
+      moneyBook(book, account).entries.filter((e) => e.ref.type !== 'opening').length
+    assert.equal(movements('both'), movements('cash') + movements('bank') - moved.length)
+  })
   await check(`${label}: every ledger ends on its balance`, () => {
     for (const c of book.customers) assert.equal(r2(customerLedger(book, c.id, d.stats).balance), r2(d.balances.customers.get(c.id)!))
     for (const s of book.suppliers) assert.equal(r2(supplierLedger(book, s.id).balance), r2(d.balances.suppliers.get(s.id)!))
