@@ -34,12 +34,12 @@ const mainNav = (): NavItem[] => [
 const moreNav = (): NavItem[] => [
   { to: '/money', label: t('Cash & bank'), Icon: Wallet, tone: 'brand' },
   { to: '/expenses', label: t('Expenses'), Icon: Receipt, tone: 'owed' },
-  { to: '/report', label: t('Monthly report'), Icon: ChartColumn, tone: 'bank' },
+  { to: '/reports', label: t('Reports'), Icon: ChartColumn, tone: 'bank' },
   { to: '/settings', label: t('Settings'), Icon: Settings, tone: 'neutral' },
 ]
 
 /** Pages reached from the More tab still light it up on a phone. */
-const UNDER_MORE = ['/more', '/money', '/expenses', '/report', '/settings']
+const UNDER_MORE = ['/more', '/money', '/expenses', '/reports', '/settings']
 
 /** Long forms take the whole phone screen, with their Save button pinned where the tabs were. */
 const isFormPage = (pathname: string) => /\/(new|edit)$/.test(pathname)

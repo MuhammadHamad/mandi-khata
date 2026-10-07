@@ -1,12 +1,12 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import { t } from '../lib/i18n'
-import { periodAround, periodLabel, stepPeriod } from '../lib/period'
+import { periodAround, periodLabel, periodsBack, stepPeriod } from '../lib/period'
 import type { Period, PeriodKind } from '../lib/period'
 
 /**
  * Picks the stretch of days a page shows: a month, quarter, half-year or year, stepped with
- * the arrows, or any two dates. `earliest` is the first day with a record, so the arrows
- * stop where the records do, and never go past today.
+ * the arrows or picked from the list under its name, or any two dates. `earliest` is the
+ * first day with a record, so the choices stop where the records do, and never pass today.
  */
 export function PeriodPicker({
   period,
@@ -32,6 +32,7 @@ export function PeriodPicker({
     onChange(kind === 'custom' ? { kind, from: period.from, to: anchor } : periodAround(kind, anchor))
   const canGoBack = earliest !== null && earliest < period.from
   const canGoOn = period.to < today
+  const calendar = period.kind === 'custom' ? 'month' : period.kind
 
   return (
     <div className="flex flex-wrap items-end gap-2">
@@ -89,9 +90,25 @@ export function PeriodPicker({
           >
             <ChevronLeft className="h-5 w-5" aria-hidden />
           </button>
-          <span className="tnum min-w-0 truncate text-center text-sm font-semibold sm:text-[15px]" aria-live="polite">
-            {periodLabel(period)}
-          </span>
+          {/* The name opens the list of every period with records; the arrows step one at a time. */}
+          <label className="relative flex min-w-0 flex-1 cursor-pointer items-center justify-center gap-1 self-stretch rounded-lg focus-within:ring-2 focus-within:ring-brand/30">
+            <span className="tnum min-w-0 truncate text-sm font-semibold sm:text-[15px]" aria-live="polite">
+              {periodLabel(period)}
+            </span>
+            <ChevronDown className="h-4 w-4 shrink-0 text-ink-soft" aria-hidden />
+            <select
+              aria-label={t('Which one')}
+              className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+              value={period.from}
+              onChange={(e) => onChange(periodAround(calendar, e.target.value))}
+            >
+              {periodsBack(calendar, today, earliest, period).map((p) => (
+                <option key={p.from} value={p.from}>
+                  {periodLabel(p)}
+                </option>
+              ))}
+            </select>
+          </label>
           <button
             type="button"
             aria-label={t('Later')}

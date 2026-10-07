@@ -25,6 +25,22 @@ export function stepPeriod(p: Period, step: 1 | -1): Period {
   return periodAround(p.kind, step < 0 ? addDays(p.from, -1) : addDays(p.to, 1))
 }
 
+/**
+ * Every period of one kind from the one holding today back to the one holding `earliest`, newest first,
+ * for picking one straight from a list. `shown` is kept in the list even when it lies outside that span.
+ */
+export function periodsBack(kind: Exclude<PeriodKind, 'custom'>, today: string, earliest: string | null, shown?: Period): Period[] {
+  const list = [periodAround(kind, today)]
+  while (earliest && earliest < list[list.length - 1].from && list.length < 600) {
+    list.push(stepPeriod(list[list.length - 1], -1))
+  }
+  if (shown && shown.kind === kind && !list.some((p) => p.from === shown.from)) {
+    list.push(shown)
+    list.sort((a, b) => b.from.localeCompare(a.from))
+  }
+  return list
+}
+
 const SHORT_MONTH = new Intl.DateTimeFormat('en-GB', { month: 'short', timeZone: 'UTC' })
 const shortMonth = (iso: string) => SHORT_MONTH.format(new Date(`${iso}T00:00:00Z`))
 

@@ -16,7 +16,7 @@ export const UR: Record<string, string> = {
   Ledgers: 'Khatay',
   'Cash & bank': 'Nakad aur bank',
   Expenses: 'Kharchay',
-  'Monthly report': 'Mahana hisaab',
+  Reports: 'Reports',
   Settings: 'Settings',
   More: 'Aur',
   Language: 'Zubaan',
@@ -263,6 +263,7 @@ export const UR: Record<string, string> = {
   To: 'Kab tak',
   Earlier: 'Pichla',
   Later: 'Agla',
+  'Which one': 'Kaun sa',
   'Balance {amount}': 'Baqaya {amount}',
   'Nothing in this book yet': 'Is hisaab mein abhi kuch nahi',
   'When you started using the app': 'Jab app shuru ki',
@@ -298,8 +299,8 @@ export const UR: Record<string, string> = {
   Camel: 'Oont',
 
   // -------------------------------------------------------------- report --
-  "An animal's cost counts in the month it is sold or dies, so a month with a big purchase doesn't show as a loss.":
-    'Janwar ki laagat us mahine mein ginti hai jab wo bike ya mare. Is liye bari khareed wala mahina nuqsan mein nahi dikhta.',
+  "An animal's cost counts when it is sold or dies, so a big purchase doesn't show as a loss.":
+    'Janwar ki laagat tab ginti hai jab wo bike ya mare. Is liye bari khareed nuqsan mein nahi dikhti.',
   'Nothing to report yet': 'Abhi koi hisaab nahi',
   '{animals} · {received} paid at sale, {credit} on credit': '{animals} · {received} nakad mile, {credit} udhaar',
   'Cost of the animals sold': 'Bikay janwaron ki laagat',
@@ -307,8 +308,8 @@ export const UR: Record<string, string> = {
   'What they cost': 'In ki laagat',
   '{animals} sold {amount} below cost. That is already inside the figures above.':
     '{animals} laagat se {amount} kam mein bikay. Ye upar ke hisaab mein shamil hai.',
-  'Bought {animals} for {amount} this month. Their cost counts as they are sold.':
-    'Is mahine {animals} {amount} mein khareede. In ki laagat bikne par ginti hai.',
+  'Bought {animals} for {amount} in this time. Their cost counts as they are sold.':
+    'In dinon mein {animals} {amount} mein khareede. In ki laagat bikne par ginti hai.',
 
   // ------------------------------------------------------------ settings --
   'Words on the screen. Each phone remembers its own choice.': 'Screen ki zubaan. Har phone apni pasand yaad rakhta hai.',

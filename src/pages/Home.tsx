@@ -115,7 +115,7 @@ export default function Home() {
           value={rs(Math.abs(profit))}
           status={month ? <Gain value={profit} amount={false} /> : undefined}
           detail={month ? t('Sales {amount}', { amount: rs(month.sales) }) : t('Nothing yet this month')}
-          to="/report"
+          to="/reports"
         />
       </div>
 

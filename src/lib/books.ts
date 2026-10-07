@@ -583,9 +583,8 @@ export function moneyBalances(book: Book): { cash: number; bank: number } {
 
 // ----------------------------------------------------------- months --
 
-export type MonthRow = {
-  /** `YYYY-MM` */
-  month: string
+/** What a stretch of days earned: its sales, less what those animals cost, the animals that died, and expenses. */
+export type ReportRow = {
   sales: number
   /** Of `sales`, received at the time of sale. */
   received: number
@@ -607,9 +606,13 @@ export type MonthRow = {
   bought: number
 }
 
-function blankMonth(month: string): MonthRow {
+export type MonthRow = ReportRow & {
+  /** `YYYY-MM` */
+  month: string
+}
+
+function blankReport(): ReportRow {
   return {
-    month,
     sales: 0,
     received: 0,
     credit: 0,
@@ -627,15 +630,17 @@ function blankMonth(month: string): MonthRow {
   }
 }
 
-export function monthlyReport(book: Book, stats: Map<string, LineStats>): MonthRow[] {
-  const months = new Map<string, MonthRow>()
+/** Adds the books up into rows: `keyOf` names the row a day belongs to, or null to leave that day out. */
+function reportRows(book: Book, stats: Map<string, LineStats>, keyOf: (day: string) => string | null): Map<string, ReportRow> {
+  const rows = new Map<string, ReportRow>()
   const at = (date: string) => {
-    const key = date.slice(0, 7)
-    let row = months.get(key)
-    if (!row) months.set(key, (row = blankMonth(key)))
+    const key = keyOf(date)
+    if (key === null) return null
+    let row = rows.get(key)
+    if (!row) rows.set(key, (row = blankReport()))
     return row
   }
-  const categories = new Map<string, Map<string, number>>()
+  const categories = new Map<ReportRow, Map<string, number>>()
 
   const sales = new Map(book.sales.map((s) => [s.id, s]))
   for (const l of book.saleLines) {
@@ -643,6 +648,7 @@ export function monthlyReport(book: Book, stats: Map<string, LineStats>): MonthR
     const s = stats.get(l.challan_line_id)
     if (!sale || !s) continue
     const row = at(sale.sold_on)
+    if (!row) continue
     const cost = costOf(s.line, l.head)
     row.sales += l.amount
     row.headSold += l.head
@@ -655,39 +661,65 @@ export function monthlyReport(book: Book, stats: Map<string, LineStats>): MonthR
   const totals = saleTotals(book)
   for (const sale of book.sales) {
     const row = at(sale.sold_on)
+    if (!row) continue
     row.received += sale.received_now
     row.credit += (totals.get(sale.id) ?? 0) - sale.received_now
   }
   for (const d of book.deaths) {
     const s = stats.get(d.challan_line_id)
-    if (!s) continue
-    const row = at(d.died_on)
+    const row = s ? at(d.died_on) : null
+    if (!s || !row) continue
     row.headDied += d.head
     row.deathLoss += costOf(s.line, d.head)
   }
   for (const e of book.expenses) {
     const row = at(e.spent_on)
+    if (!row) continue
     row.expenses += e.amount
-    const cats = categories.get(row.month) ?? new Map<string, number>()
+    const cats = categories.get(row) ?? new Map<string, number>()
     cats.set(e.category, (cats.get(e.category) ?? 0) + e.amount)
-    categories.set(row.month, cats)
+    categories.set(row, cats)
   }
   const boughtOn = new Map(book.challans.map((c) => [c.id, c.bought_on]))
   for (const l of book.challanLines) {
     const date = boughtOn.get(l.challan_id)
-    if (!date) continue
-    const row = at(date)
+    const row = date ? at(date) : null
+    if (!row) continue
     row.headBought += l.head
     row.bought += l.cost
   }
 
-  for (const row of months.values()) {
+  for (const row of rows.values()) {
     row.profit = row.sales - row.costOfSold - row.deathLoss - row.expenses
-    row.byCategory = [...(categories.get(row.month) ?? new Map<string, number>())]
+    row.byCategory = [...(categories.get(row) ?? new Map<string, number>())]
       .map(([category, amount]) => ({ category, amount }))
       .sort((a, b) => b.amount - a.amount)
   }
-  return [...months.values()].sort((a, b) => b.month.localeCompare(a.month))
+  return rows
+}
+
+/** One row per month that has anything in it, newest first. An animal's cost counts in the month it is sold or dies. */
+export function monthlyReport(book: Book, stats: Map<string, LineStats>): MonthRow[] {
+  return [...reportRows(book, stats, (day) => day.slice(0, 7))]
+    .map(([month, row]) => ({ ...row, month }))
+    .sort((a, b) => b.month.localeCompare(a.month))
+}
+
+/** The same sums for any stretch of days, `from` and `to` both counted. */
+export function periodReport(book: Book, stats: Map<string, LineStats>, from: string, to: string): ReportRow {
+  return reportRows(book, stats, (day) => (day >= from && day <= to ? 'period' : null)).get('period') ?? blankReport()
+}
+
+/** The first day anything was recorded, or null for empty books. */
+export function firstRecordDay(book: Book): string | null {
+  const days = [
+    ...book.challans.map((c) => c.bought_on),
+    ...book.sales.map((s) => s.sold_on),
+    ...book.deaths.map((d) => d.died_on),
+    ...book.expenses.map((e) => e.spent_on),
+    ...book.payments.map((p) => p.paid_on),
+  ]
+  return days.length ? days.reduce((a, b) => (b < a ? b : a)) : null
 }
 
 // --------------------------------------------------------- overview --

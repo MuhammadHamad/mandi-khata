@@ -15,8 +15,10 @@ import {
   costOf,
   customerLedger,
   derive,
+  firstRecordDay,
   moneyBook,
   monthlyReport,
+  periodReport,
   supplierLedger,
 } from '../src/lib/books'
 import type { Book } from '../src/lib/types'
@@ -24,7 +26,7 @@ import { tidyPayment } from '../src/data/api'
 import type { Backend } from '../src/data/api'
 import { createDemoBackend, memoryStore } from '../src/data/demo'
 import { TABLES, toBook } from '../src/data/rows'
-import { rs } from '../src/lib/format'
+import { addDays, rs } from '../src/lib/format'
 import { setLang } from '../src/lib/i18n'
 import { uuid } from '../src/lib/ids'
 import { periodAround, readPeriod, stepPeriod, writePeriod } from '../src/lib/period'
@@ -295,6 +297,22 @@ async function checkIdentities(label: string, book: Book): Promise<void> {
     const movements = (account: 'cash' | 'bank' | 'both') =>
       moneyBook(book, account).entries.filter((e) => e.ref.type !== 'opening').length
     assert.equal(movements('both'), movements('cash') + movements('bank') - moved.length)
+  })
+  await check(`${label}: a report for any stretch of days adds up the same as its months`, () => {
+    const months = monthlyReport(book, d.stats)
+    const keys = ['sales', 'received', 'credit', 'costOfSold', 'deathLoss', 'expenses', 'profit', 'headSold', 'headDied', 'bought'] as const
+    const pick = (r: Record<(typeof keys)[number], number>) => keys.map((k) => r2(r[k]))
+    for (const m of months) {
+      const p = periodAround('month', `${m.month}-01`)
+      assert.deepEqual(pick(periodReport(book, d.stats, p.from, p.to)), pick(m), m.month)
+    }
+    const first = firstRecordDay(book)!
+    const everything = periodReport(book, d.stats, first, '9999-12-31')
+    assert.deepEqual(
+      pick(everything),
+      keys.map((k) => r2(months.reduce((t, m) => t + m[k], 0))),
+    )
+    assert.equal(r2(periodReport(book, d.stats, '1900-01-01', addDays(first, -1)).sales), 0)
   })
   await check(`${label}: every ledger ends on its balance`, () => {
     for (const c of book.customers) assert.equal(r2(customerLedger(book, c.id, d.stats).balance), r2(d.balances.customers.get(c.id)!))

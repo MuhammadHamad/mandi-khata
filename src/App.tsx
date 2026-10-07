@@ -15,7 +15,7 @@ import Ledgers from './pages/Ledgers'
 import Login from './pages/Login'
 import Money from './pages/Money'
 import PartyLedger from './pages/PartyLedger'
-import Report from './pages/Report'
+import Reports from './pages/Reports'
 import SaleDetail from './pages/SaleDetail'
 import SaleForm from './pages/SaleForm'
 import Sales from './pages/Sales'
@@ -67,7 +67,8 @@ export default function App() {
                 <Route path="suppliers/:id" element={<PartyLedger kind="supplier" />} />
                 <Route path="money" element={<Money />} />
                 <Route path="expenses" element={<Expenses />} />
-                <Route path="report" element={<Report />} />
+                <Route path="reports" element={<Reports />} />
+                <Route path="report" element={<Navigate to="/reports" replace />} />
                 <Route path="settings" element={<Settings />} />
                 <Route path="more" element={<MorePage />} />
               </Route>
