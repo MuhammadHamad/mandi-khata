@@ -31,6 +31,7 @@ import { setLang } from '../src/lib/i18n'
 import { uuid } from '../src/lib/ids'
 import { periodAround, readPeriod, stepPeriod, writePeriod } from '../src/lib/period'
 import { checkSale } from '../src/lib/rules'
+import { balanceMessage, whatsappLink, whatsappNumber } from '../src/lib/share'
 import { UR } from '../src/lib/ur'
 import { SETUP_SQL, addUser, as, freshDb } from './pglite'
 
@@ -489,6 +490,42 @@ async function checkPeriods(): Promise<void> {
   })
 }
 
+/** The WhatsApp button: Pakistani numbers in WhatsApp's form, and a message that says which way the money is owed. */
+async function checkWhatsApp(): Promise<void> {
+  await check('whatsapp: Pakistani numbers become 92…, anything else is left out', () => {
+    for (const n of ['0300 1234567', '0300-1234567', '+92 300 1234567', '0092 300 1234567', '3001234567', '92 300 1234567']) {
+      assert.equal(whatsappNumber(n), '923001234567', n)
+    }
+    assert.equal(whatsappNumber(''), null)
+    assert.equal(whatsappNumber('12'), null)
+    assert.equal(whatsappLink(null, 'a b'), 'https://wa.me/?text=a%20b')
+    assert.equal(whatsappLink('0311 1112223', 'Rs 5,000'), 'https://wa.me/923111112223?text=Rs%205%2C000')
+  })
+  const message = (kind: 'customer' | 'supplier', balance: number) =>
+    balanceMessage({ kind, name: 'Bilal', balance, business: 'Demo Mandi', today: '2026-10-07' })
+  await check('whatsapp: the message says who owes whom, and how much', () => {
+    assert.equal(
+      message('customer', 220_000),
+      'Hello Bilal,\nYour account with Demo Mandi, as of 7 Oct 2026:\nYou owe us *Rs 220,000*.\nThank you.',
+    )
+    assert.match(message('supplier', 765_000), /We owe you \*Rs 765,000\*\./)
+    assert.match(message('customer', -5_000), /We hold \*Rs 5,000\* of yours in advance\./)
+    assert.match(message('supplier', -5_000), /You hold \*Rs 5,000\* of ours in advance\./)
+    assert.match(message('customer', 0.2), /Your account is settled\. Nothing is due\./)
+    assert.match(balanceMessage({ kind: 'customer', name: 'B', balance: 1, business: ' ', today: '2026-10-07' }), /^Hello B,\nYour account as of 7 Oct 2026:/)
+  })
+  await check('whatsapp: in Roman Urdu the message reads the mandi way', () => {
+    setLang('ur')
+    try {
+      assert.match(message('customer', 220_000), /Aap ne humein \*Rs 2,20,000\* dene hain\./)
+      assert.match(message('supplier', 765_000), /Hum ne aap ko \*Rs 7,65,000\* dene hain\./)
+      assert.match(message('supplier', 765_000), /^Assalam-o-Alaikum Bilal,\nDemo Mandi ke saath aap ka hisaab, 7 Oct 2026 tak:/)
+    } finally {
+      setLang('en')
+    }
+  })
+}
+
 async function main() {
   // The checks read English messages; Roman Urdu has its own checks below.
   setLang('en')
@@ -498,6 +535,7 @@ async function main() {
   await checkIdentities('demo', demoBook)
   await checkRomanUrdu(demoBook)
   await checkPeriods()
+  await checkWhatsApp()
 
   const db = await freshDb()
   const alice = uuid()

@@ -30,6 +30,9 @@
   --color-owed-wash: #f8ecd8;
   --color-bank: #275a7f;
   --color-bank-wash: #e3edf5;
+  /* WhatsApp's own green, the same in light and dark, so its button is known at a glance. */
+  --color-whatsapp: #25d366;
+  --color-whatsapp-ink: #06200f;
 
   --color-scrim: #191e16;
   --radius-card: 1.25rem;
@@ -115,6 +118,10 @@
     opacity: 0.5;
     pointer-events: none;
   }
+  /* A long word must never squeeze the picture out of a button. */
+  & > svg {
+    flex-shrink: 0;
+  }
 }
 
 @layer components {
@@ -143,6 +150,11 @@
 
   .btn-ghost {
     @apply btn bg-paper text-ink shadow-card hover:bg-sunk;
+  }
+
+  /* Dark text on WhatsApp green reads clearly in both themes. */
+  .btn-whatsapp {
+    @apply btn bg-whatsapp text-whatsapp-ink hover:brightness-95;
   }
 
   .btn-danger {

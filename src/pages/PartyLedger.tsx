@@ -1,13 +1,14 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, ArrowLeftRight, Banknote, BookOpen, Pencil, Phone, Plus, Tag, Truck } from 'lucide-react'
+import { ArrowLeft, ArrowLeftRight, Banknote, BookOpen, MessageCircle, Pencil, Phone, Plus, Tag, Truck } from 'lucide-react'
 import { PartyForm, PaymentForm } from '../components/forms'
 import { Avatar, Badge, Card, Empty, Gate, IconBadge, PageHeader, Row, Section } from '../components/ui'
 import { useBooks } from '../data/queries'
 import { customerLedger, supplierLedger } from '../lib/books'
 import type { LedgerEntry } from '../lib/books'
-import { rs, shortDate } from '../lib/format'
+import { rs, shortDate, todayISO } from '../lib/format'
 import { t } from '../lib/i18n'
+import { balanceMessage, whatsappLink } from '../lib/share'
 import type { Payment, PartyKind } from '../lib/types'
 import { balanceTone, balanceWord } from './Ledgers'
 
@@ -64,10 +65,9 @@ export default function PartyLedger({ kind }: { kind: PartyKind }) {
         <div className="flex items-center gap-4">
           <Avatar name={party.name} size="lg" />
           <div className="min-w-0 flex-1">
-            <h1 className="truncate text-xl font-semibold tracking-tight">{party.name}</h1>
+            <h1 className="line-clamp-2 text-xl leading-snug font-semibold tracking-tight break-words">{party.name}</h1>
             <div className="truncate text-sm text-ink-soft">
-              {customer ? t('Customer') : t('Supplier')}
-              {party.notes ? ` · ${party.notes}` : ''}
+              {[customer ? t('Customer') : t('Supplier'), party.phone, party.notes].filter(Boolean).join(' · ')}
             </div>
           </div>
           <button
@@ -99,12 +99,33 @@ export default function PartyLedger({ kind }: { kind: PartyKind }) {
             {customer ? t('New sale') : t('New challan')}
           </button>
         </div>
-        {party.phone ? (
-          <a href={`tel:${party.phone.replace(/\s/g, '')}`} className="btn-ghost mt-2 w-full">
-            <Phone className="h-4 w-4" aria-hidden />
-            {t('Call')} {party.phone}
+        <div className={`mt-2 grid gap-2 ${party.phone ? 'grid-cols-2' : ''}`}>
+          {party.phone ? (
+            <a href={`tel:${party.phone.replace(/\s/g, '')}`} className="btn-ghost">
+              <Phone className="h-4 w-4" aria-hidden />
+              {t('Call')}
+            </a>
+          ) : null}
+          {/* Opens WhatsApp with the balance written out; without a number, WhatsApp asks which chat. */}
+          <a
+            href={whatsappLink(
+              party.phone,
+              balanceMessage({
+                kind,
+                name: party.name,
+                balance,
+                business: view.book.settings.business_name,
+                today: todayISO(),
+              }),
+            )}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-whatsapp"
+          >
+            <MessageCircle className="h-4 w-4" aria-hidden />
+            {t('WhatsApp')}
           </a>
-        ) : null}
+        </div>
       </Card>
 
       <Section title={t('Ledger, newest first')} aside={t('Balance after each')}>
