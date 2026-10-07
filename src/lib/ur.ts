@@ -250,6 +250,7 @@ export const UR: Record<string, string> = {
   'Hello {name},': 'Assalam-o-Alaikum {name},',
   'Your account with {business}, as of {date}:': '{business} ke saath aap ka hisaab, {date} tak:',
   'Your account as of {date}:': 'Aap ka hisaab, {date} tak:',
+  'Your whole account as of {date}:': '{date} tak aap ka pura hisaab:',
   'You owe us {amount}.': 'Aap ne humein {amount} dene hain.',
   'We owe you {amount}.': 'Hum ne aap ko {amount} dene hain.',
   'We hold {amount} of yours in advance.': 'Aap ke {amount} humare paas advance jama hain.',

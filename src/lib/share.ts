@@ -1,6 +1,6 @@
-import { rs, shortDate } from './format'
+import { accountName, animalsText, rs, shortDate } from './format'
 import { t } from './i18n'
-import type { PartyKind } from './types'
+import type { Account, PartyKind } from './types'
 
 /**
  * A phone number the way WhatsApp wants it: country code first, digits only.
@@ -39,24 +39,66 @@ export function balanceMessage({
   business: string
   today: string
 }): string {
-  const amount = `*${rs(Math.abs(balance))}*`
   const date = shortDate(today)
-  const settled = Math.abs(balance) < 0.5
-  const statement = settled
-    ? t('Your account is settled. Nothing is due.')
-    : kind === 'customer'
-      ? balance > 0
-        ? t('You owe us {amount}.', { amount })
-        : t('We hold {amount} of yours in advance.', { amount })
-      : balance > 0
-        ? t('We owe you {amount}.', { amount })
-        : t('You hold {amount} of ours in advance.', { amount })
   return [
     t('Hello {name},', { name }),
     business.trim()
       ? t('Your account with {business}, as of {date}:', { business: business.trim(), date })
       : t('Your account as of {date}:', { date }),
-    statement,
+    balanceStatement(kind, balance),
     t('Thank you.'),
   ].join('\n')
+}
+
+/**
+ * One challan as a message to its supplier: what was bought, its total, what was paid at
+ * purchase and what went on credit, then where their whole khata stands today.
+ */
+export function challanMessage({
+  name,
+  business,
+  number,
+  boughtOn,
+  animals,
+  total,
+  paidNow,
+  paidFrom,
+  balance,
+  today,
+}: {
+  name: string
+  business: string
+  number: number
+  boughtOn: string
+  animals: { animal: string; head: number }[]
+  total: number
+  paidNow: number
+  paidFrom: Account
+  balance: number
+  today: string
+}): string {
+  const challan = t('Challan #{n}', { n: number })
+  const bought = t('bought {date}', { date: shortDate(boughtOn) })
+  return [
+    t('Hello {name},', { name }),
+    business.trim() ? `${business.trim()}: ${challan}, ${bought}` : `${challan}, ${bought}`,
+    animalsText(animals),
+    `${t('Challan total')}: *${rs(total)}*`,
+    `${t('Paid at purchase ({account})', { account: accountName(paidFrom) })}: ${rs(paidNow)}`,
+    `${t('On credit')}: ${rs(Math.max(0, total - paidNow))}`,
+    `${t('Your whole account as of {date}:', { date: shortDate(today) })} ${balanceStatement('supplier', balance)}`,
+    t('Thank you.'),
+  ].join('\n')
+}
+
+/** One plain sentence saying which way the money is owed, with the amount in bold. */
+function balanceStatement(kind: PartyKind, balance: number): string {
+  const amount = `*${rs(Math.abs(balance))}*`
+  if (Math.abs(balance) < 0.5) return t('Your account is settled. Nothing is due.')
+  if (kind === 'customer') {
+    return balance > 0
+      ? t('You owe us {amount}.', { amount })
+      : t('We hold {amount} of yours in advance.', { amount })
+  }
+  return balance > 0 ? t('We owe you {amount}.', { amount }) : t('You hold {amount} of ours in advance.', { amount })
 }

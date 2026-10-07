@@ -1,7 +1,19 @@
 import { useState } from 'react'
 import type { ReactNode } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { ChevronDown, HeartCrack, PawPrint, Pencil, Receipt, StickyNote, Tag, Trash2, Truck } from 'lucide-react'
+import {
+  ChevronDown,
+  HeartCrack,
+  MessageCircle,
+  PawPrint,
+  Pencil,
+  Phone,
+  Receipt,
+  StickyNote,
+  Tag,
+  Trash2,
+  Truck,
+} from 'lucide-react'
 import { DeathForm, ExpenseForm } from '../components/forms'
 import {
   Avatar,
@@ -22,9 +34,10 @@ import { backend } from '../data/backend'
 import { useAction, useBooks } from '../data/queries'
 import { costOf } from '../lib/books'
 import type { ChallanSummary, Derived, SaleView } from '../lib/books'
-import { accountName, count, rs, shortDate } from '../lib/format'
+import { accountName, count, rs, shortDate, todayISO } from '../lib/format'
 import { t } from '../lib/i18n'
 import { whyCantDeleteChallan } from '../lib/rules'
+import { challanMessage, whatsappLink } from '../lib/share'
 import type { Death, Expense } from '../lib/types'
 
 /** The four parts of a challan's details; one shows at a time, under the cards that pick it. */
@@ -207,11 +220,48 @@ export default function ChallanDetail() {
               <Line label={t('Left on credit')} value={rs(c.unpaid)} strong />
             </dl>
             {c.unpaid > 0.5 ? <p className="pt-1 text-xs text-ink-soft">{t("The credit is on the supplier's ledger.")}</p> : null}
-            {supplierLink ? (
-              <Link to={supplierLink} className="btn-soft mt-2 w-full">
-                <Truck className="h-4 w-4" aria-hidden />
-                {t("Open {name}'s ledger", { name: c.supplier?.name ?? '' })}
-              </Link>
+            {c.supplier && supplierLink ? (
+              <div className="space-y-2 border-t border-line-soft pt-3">
+                <p className="text-[13px] text-ink-soft">
+                  {[c.supplier.name, c.supplier.phone].filter(Boolean).join(' · ')}
+                </p>
+                <div className={`grid gap-2 ${c.supplier.phone ? 'grid-cols-2' : ''}`}>
+                  {c.supplier.phone ? (
+                    <a href={`tel:${c.supplier.phone.replace(/\s/g, '')}`} className="btn-ghost">
+                      <Phone className="h-4 w-4" aria-hidden />
+                      {t('Call')}
+                    </a>
+                  ) : null}
+                  {/* This challan, then where the supplier's whole khata stands, ready to send. */}
+                  <a
+                    href={whatsappLink(
+                      c.supplier.phone,
+                      challanMessage({
+                        name: c.supplier.name,
+                        business: view.book.settings.business_name,
+                        number: c.challan.number,
+                        boughtOn: c.challan.bought_on,
+                        animals: c.lines.map((s) => s.line),
+                        total: c.cost,
+                        paidNow: c.challan.paid_now,
+                        paidFrom: c.challan.paid_from,
+                        balance: view.balances.suppliers.get(c.supplier.id) ?? 0,
+                        today: todayISO(),
+                      }),
+                    )}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-whatsapp"
+                  >
+                    <MessageCircle className="h-4 w-4" aria-hidden />
+                    {t('WhatsApp')}
+                  </a>
+                </div>
+                <Link to={supplierLink} className="btn-soft w-full">
+                  <Truck className="h-4 w-4" aria-hidden />
+                  {t("Open {name}'s ledger", { name: c.supplier.name })}
+                </Link>
+              </div>
             ) : null}
           </Card>
         )}

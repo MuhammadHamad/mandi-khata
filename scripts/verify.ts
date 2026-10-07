@@ -31,7 +31,7 @@ import { setLang } from '../src/lib/i18n'
 import { uuid } from '../src/lib/ids'
 import { periodAround, readPeriod, stepPeriod, writePeriod } from '../src/lib/period'
 import { checkSale } from '../src/lib/rules'
-import { balanceMessage, whatsappLink, whatsappNumber } from '../src/lib/share'
+import { balanceMessage, challanMessage, whatsappLink, whatsappNumber } from '../src/lib/share'
 import { UR } from '../src/lib/ur'
 import { SETUP_SQL, addUser, as, freshDb } from './pglite'
 
@@ -514,12 +514,45 @@ async function checkWhatsApp(): Promise<void> {
     assert.match(message('customer', 0.2), /Your account is settled\. Nothing is due\./)
     assert.match(balanceMessage({ kind: 'customer', name: 'B', balance: 1, business: ' ', today: '2026-10-07' }), /^Hello B,\nYour account as of 7 Oct 2026:/)
   })
+  const challan = {
+    name: 'Sher Afzal',
+    business: 'Demo Mandi',
+    number: 3,
+    boughtOn: '2026-09-29',
+    animals: [
+      { animal: 'Bakra', head: 25 },
+      { animal: 'Dumba', head: 6 },
+    ],
+    total: 1_765_000,
+    paidNow: 1_000_000,
+    paidFrom: 'bank' as const,
+    balance: 765_000,
+    today: '2026-10-07',
+  }
+  await check("whatsapp: a challan's message gives the purchase, then the whole khata", () => {
+    assert.equal(
+      challanMessage(challan),
+      [
+        'Hello Sher Afzal,',
+        'Demo Mandi: Challan #3, bought 29 Sept 2026',
+        '25 Bakra · 6 Dumba',
+        'Challan total: *Rs 1,765,000*',
+        'Paid at purchase (Bank): Rs 1,000,000',
+        'On credit: Rs 765,000',
+        'Your whole account as of 7 Oct 2026: We owe you *Rs 765,000*.',
+        'Thank you.',
+      ].join('\n'),
+    )
+    assert.match(challanMessage({ ...challan, balance: 0 }), /Your account is settled\. Nothing is due\./)
+  })
   await check('whatsapp: in Roman Urdu the message reads the mandi way', () => {
     setLang('ur')
     try {
       assert.match(message('customer', 220_000), /Aap ne humein \*Rs 2,20,000\* dene hain\./)
       assert.match(message('supplier', 765_000), /Hum ne aap ko \*Rs 7,65,000\* dene hain\./)
       assert.match(message('supplier', 765_000), /^Assalam-o-Alaikum Bilal,\nDemo Mandi ke saath aap ka hisaab, 7 Oct 2026 tak:/)
+      assert.match(challanMessage(challan), /Demo Mandi: Challan #3, 29 Sept 2026 ko khareeda\n25 Bakra · 6 Dumba\nChallan ka kul: \*Rs 17,65,000\*/)
+      assert.match(challanMessage(challan), /Khareed ke waqt diye \(Bank\): Rs 10,00,000\nUdhaar: Rs 7,65,000\n7 Oct 2026 tak aap ka pura hisaab: Hum ne aap ko \*Rs 7,65,000\* dene hain\./)
     } finally {
       setLang('en')
     }
