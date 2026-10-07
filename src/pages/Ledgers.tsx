@@ -39,7 +39,6 @@ export default function Ledgers() {
         label={t('Customers or suppliers')}
         value={kind}
         onChange={(k) => setParams(k === 'supplier' ? { tab: 'suppliers' } : {}, { replace: true })}
-        className="sm:max-w-xl"
         options={[
           {
             value: 'customer',
@@ -59,7 +58,7 @@ export default function Ledgers() {
           },
         ]}
       />
-      <label className="relative block sm:max-w-md">
+      <label className="relative block">
         <Search className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-ink-faint" aria-hidden />
         <input
           className="field pl-10"

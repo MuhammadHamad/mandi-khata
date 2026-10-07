@@ -307,7 +307,7 @@ export function Pills<T extends string>({
 
 /**
  * Pills grown into cards, for a choice that has a figure of its own: each card shows its
- * amount, and the chosen one is raised and outlined while the other sits flat.
+ * amount. The chosen one is filled and outlined in green; the other is only outlined, in light and dark alike.
  */
 export function TabCards<T extends string>({
   options,
@@ -333,7 +333,7 @@ export function TabCards<T extends string>({
             aria-pressed={chosen}
             onClick={() => onChange(o.value)}
             className={`flex min-w-0 flex-col rounded-card p-4 text-left transition active:scale-[0.99] ${
-              chosen ? 'bg-paper shadow-card ring-2 ring-brand' : 'bg-sunk hover:bg-line-soft'
+              chosen ? 'bg-paper shadow-card ring-2 ring-brand' : 'ring-1 ring-line hover:bg-paper/60'
             }`}
           >
             <span className="flex items-center gap-2.5">
