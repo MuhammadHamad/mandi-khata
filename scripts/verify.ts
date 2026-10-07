@@ -27,6 +27,7 @@ import { TABLES, toBook } from '../src/data/rows'
 import { rs } from '../src/lib/format'
 import { setLang } from '../src/lib/i18n'
 import { uuid } from '../src/lib/ids'
+import { periodAround, readPeriod, stepPeriod, writePeriod } from '../src/lib/period'
 import { checkSale } from '../src/lib/rules'
 import { UR } from '../src/lib/ur'
 import { SETUP_SQL, addUser, as, freshDb } from './pglite'
@@ -432,6 +433,44 @@ async function checkRomanUrdu(englishBook: Book): Promise<void> {
 
 // ---------------------------------------------------------------- run --
 
+/** The calendar arithmetic behind the period picker. */
+async function checkPeriods(): Promise<void> {
+  const span = (p: { from: string; to: string }) => `${p.from}..${p.to}`
+  await check('periods: a month, quarter, half and year hold the right days', () => {
+    assert.equal(span(periodAround('month', '2028-02-10')), '2028-02-01..2028-02-29')
+    assert.equal(span(periodAround('month', '2026-02-10')), '2026-02-01..2026-02-28')
+    assert.equal(span(periodAround('quarter', '2026-08-15')), '2026-07-01..2026-09-30')
+    assert.equal(span(periodAround('quarter', '2026-12-31')), '2026-10-01..2026-12-31')
+    assert.equal(span(periodAround('half', '2026-06-30')), '2026-01-01..2026-06-30')
+    assert.equal(span(periodAround('half', '2026-07-01')), '2026-07-01..2026-12-31')
+    assert.equal(span(periodAround('year', '2026-10-07')), '2026-01-01..2026-12-31')
+  })
+  await check('periods: the arrows step across a year end', () => {
+    assert.equal(span(stepPeriod(periodAround('month', '2026-01-20'), -1)), '2025-12-01..2025-12-31')
+    assert.equal(span(stepPeriod(periodAround('quarter', '2026-11-02'), 1)), '2027-01-01..2027-03-31')
+    assert.equal(span(stepPeriod(periodAround('half', '2026-03-03'), -1)), '2025-07-01..2025-12-31')
+  })
+  await check('periods: the address keeps the period, and reads back the same', () => {
+    const today = '2026-10-07'
+    for (const p of [
+      periodAround('month', today),
+      periodAround('quarter', '2026-05-05'),
+      periodAround('year', '2025-01-01'),
+      { kind: 'custom' as const, from: '2026-08-10', to: '2026-09-20' },
+    ]) {
+      const params = writePeriod(new URLSearchParams('book=cash'), p, today)
+      assert.equal(params.get('book'), 'cash')
+      assert.deepEqual(readPeriod(params, today), p)
+    }
+    assert.equal(writePeriod(new URLSearchParams(), periodAround('month', today), today).toString(), '')
+    assert.deepEqual(readPeriod(new URLSearchParams('period=custom&from=2026-09-20&to=2026-08-10'), today), {
+      kind: 'custom',
+      from: '2026-08-10',
+      to: '2026-09-20',
+    })
+  })
+}
+
 async function main() {
   // The checks read English messages; Roman Urdu has its own checks below.
   setLang('en')
@@ -440,6 +479,7 @@ async function main() {
   await checkSampleFigures('demo', demoBook)
   await checkIdentities('demo', demoBook)
   await checkRomanUrdu(demoBook)
+  await checkPeriods()
 
   const db = await freshDb()
   const alice = uuid()
