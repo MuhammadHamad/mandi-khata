@@ -10,7 +10,7 @@ const LangContext = createContext<{ lang: Lang; change: (next: Lang) => void }>(
 
 /**
  * Holds the chosen language. A change remounts everything inside, so every
- * word on screen, including words worked into figures (a ledger's "Bikri #12"),
+ * word on screen, including words worked into figures (a ledger's "Sale #12"),
  * is redone at once. The loaded books stay cached outside it.
  */
 export function LangProvider({ children }: { children: ReactNode }) {

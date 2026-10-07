@@ -2,7 +2,7 @@
  * Roman Urdu for every phrase on screen, keyed by its English.
  *
  * Written for owners who read little: the everyday words of the mandi
- * (bikri, gahak, beopari, khata, udhaar, nakad, kharcha, laagat, munafa,
+ * (sale, gahak, beopari, khata, udhaar, nakad, kharcha, laagat, munafa,
  * nuqsan, lene hain / dene hain, baqi), short sentences, and no formal Urdu.
  * Keep the same words for the same things everywhere.
  *
@@ -12,7 +12,7 @@ export const UR: Record<string, string> = {
   // ------------------------------------------------------------ the frame --
   Home: 'Home',
   Challans: 'Challan',
-  Sales: 'Bikri',
+  Sales: 'Sales',
   Ledgers: 'Khatay',
   'Cash & bank': 'Nakad aur bank',
   Expenses: 'Kharchay',
@@ -24,7 +24,7 @@ export const UR: Record<string, string> = {
   'Sign out': 'Logout karein',
 
   // ------------------------------------------------------------- sign in --
-  'Challans, sales, ledgers and cash, in one place.': 'Challan, bikri, khatay aur nakad, sab ek jagah.',
+  'Challans, sales, ledgers and cash, in one place.': 'Challan, sale, khatay aur nakad, sab ek jagah.',
   Email: 'Email',
   Password: 'Password',
   'Signing in…': 'Login ho raha hai…',
@@ -55,7 +55,7 @@ export const UR: Record<string, string> = {
   Animals: 'Janwar',
   'Walk-in customer': 'Bina khata gahak',
   'Challan #{n}': 'Challan #{n}',
-  'Sale #{n}': 'Bikri #{n}',
+  'Sale #{n}': 'Sale #{n}',
   Date: 'Tareekh',
   Notes: 'Note',
   'Optional.': 'Zaroori nahi.',
@@ -93,7 +93,7 @@ export const UR: Record<string, string> = {
   'Remove this line': 'Ye line hatayein',
 
   // ---------------------------------------------------------------- home --
-  'New sale': 'Nayi bikri',
+  'New sale': 'Nayi sale',
   'New challan': 'Naya challan',
   Death: 'Janwar mara',
   Payment: 'Lein dein',
@@ -103,15 +103,15 @@ export const UR: Record<string, string> = {
   'You owe suppliers': 'Beopariyon ko dene hain',
   'Animals in stock': 'Baqi janwar',
   'Cost {amount}': 'Laagat {amount}',
-  'Sales {amount}': 'Bikri {amount}',
+  'Sales {amount}': 'Sales {amount}',
   'Nothing yet this month': 'Is mahine abhi kuch nahi',
   'All challans': 'Sab challan',
   'No animals in stock': 'Koi janwar baqi nahi',
   'Record a challan when you buy a lot of animals.': 'Jab janwar khareedein to challan likhein.',
   '{animals} left': '{animals} baqi',
-  'Latest sales': 'Haal ki bikri',
-  'All sales': 'Sab bikri',
-  'No sales yet': 'Abhi koi bikri nahi',
+  'Latest sales': 'Haal ki sales',
+  'All sales': 'Sab sales',
+  'No sales yet': 'Abhi koi sale nahi',
 
   // ------------------------------------------------------------ challans --
   '{open} with animals in stock · {sold} sold out': '{open} challan mein janwar baqi · {sold} challan bik gaye',
@@ -124,7 +124,7 @@ export const UR: Record<string, string> = {
   'bought {date}': '{date} ko khareeda',
   '{n} in stock': '{n} baqi',
   Sell: 'Bechein',
-  'Sold for': 'Bikri',
+  'Sold for': 'Sale',
   '{n} sold': '{n} bik gaye',
   'Final result': 'Akhri hisaab',
   'Result so far': 'Ab tak ka hisaab',
@@ -147,7 +147,7 @@ export const UR: Record<string, string> = {
   'Left on credit': 'Udhaar baqi',
   "The credit is on the supplier's ledger.": 'Udhaar beopari ke khate mein hai.',
   "Open {name}'s ledger": '{name} ka khata kholein',
-  'Sales from this challan ({n})': 'Is challan ki bikri ({n})',
+  'Sales from this challan ({n})': 'Is challan ki sales ({n})',
   'Nothing sold yet': 'Abhi kuch nahi bika',
   Deaths: 'Mare hue janwar',
   'No expenses linked': 'Koi kharcha nahi likha',
@@ -155,7 +155,7 @@ export const UR: Record<string, string> = {
   'Delete challan #{n}?': 'Challan #{n} mitayein?',
   'Delete this challan': 'Ye challan mitayein',
   'It has no sales, deaths or expenses, so nothing else changes.':
-    'Is ki koi bikri, maut ya kharcha nahi, is liye aur kuch nahi badlega.',
+    'Is ki koi sale, maut ya kharcha nahi, is liye aur kuch nahi badlega.',
 
   // -------------------------------------------------------- challan form --
   'Edit challan #{n}': 'Challan #{n} badlein',
@@ -181,27 +181,27 @@ export const UR: Record<string, string> = {
 
   // --------------------------------------------------------------- sales --
   'This month: {amount} from {animals}': 'Is mahine: {animals} se {amount}',
-  'Which sales': 'Kaun si bikri',
-  'No sales match': 'Aisi koi bikri nahi',
-  'Record one with New sale.': '"Nayi bikri" se likhein.',
-  'Sale not found': 'Bikri nahi mili',
-  'Edit sale #{n}': 'Bikri #{n} badlein',
-  'Date sold': 'Bikri ki tareekh',
+  'Which sales': 'Kaun si sales',
+  'No sales match': 'Aisi koi sale nahi',
+  'Record one with New sale.': '"Nayi sale" se likhein.',
+  'Sale not found': 'Sale nahi mili',
+  'Edit sale #{n}': 'Sale #{n} badlein',
+  'Date sold': 'Sale ki tareekh',
   'Animals sold': 'Bikay janwar',
   'From which challan': 'Kis challan se',
   'Total price': 'Kul qeemat',
   'injured or sick, sold cheap': 'ya beemar, is liye sasta bika',
   'They cost {amount}': 'In ki laagat {amount}',
   'Add other animals': 'Aur janwar shamil karein',
-  'Sale total': 'Bikri ka kul',
+  'Sale total': 'Sale ka kul',
   'A walk-in customer pays the full {amount} now. Pick a customer to sell on credit.':
     'Bina khata gahak poore {amount} abhi deta hai. Udhaar dena hai to gahak chunein.',
   'Received now': 'Abhi mile',
   'All on credit': 'Sab udhaar',
   'Received in': 'Paisay kahan aaye',
   "It goes on the customer's ledger.": 'Ye gahak ke khate mein jayega.',
-  'On this sale': 'Is bikri par',
-  'Save sale': 'Bikri save karein',
+  'On this sale': 'Is sale par',
+  'Save sale': 'Sale save karein',
   'The {animals} go back into stock.': '{animals} wapas baqi mein aa jayenge.',
   "The {amount} credit comes off {name}'s ledger.": '{name} ke khate se {amount} udhaar hat jayega.',
   'The money comes out of the books.': 'Ye paisay hisaab se nikal jayenge.',
@@ -209,8 +209,8 @@ export const UR: Record<string, string> = {
   'Received now ({account})': 'Abhi mile ({account})',
   'Cost of these animals {amount}': 'In janwaron ki laagat {amount}',
   "The credit is on the customer's ledger.": 'Udhaar gahak ke khate mein hai.',
-  'Delete sale #{n}?': 'Bikri #{n} mitayein?',
-  'Delete this sale': 'Ye bikri mitayein',
+  'Delete sale #{n}?': 'Sale #{n} mitayein?',
+  'Delete this sale': 'Ye sale mitayein',
 
   // ------------------------------------------------------------- ledgers --
   'Customers owe you {amount}': 'Gahakon se {amount} lene hain',
@@ -223,7 +223,7 @@ export const UR: Record<string, string> = {
   'Nobody matches': 'Koi nahi mila',
   'No customers yet': 'Abhi koi gahak nahi',
   'No suppliers yet': 'Abhi koi beopari nahi',
-  'They are added from a sale, or with New customer.': 'Gahak bikri ke waqt ya "Naya gahak" se bante hain.',
+  'They are added from a sale, or with New customer.': 'Gahak sale ke waqt ya "Naya gahak" se bante hain.',
   'They are added from a challan, or with New supplier.': 'Beopari challan ke waqt ya "Naya beopari" se bante hain.',
   Settled: 'Hisaab barabar',
   'Owes you': 'Lene hain',
@@ -305,7 +305,7 @@ export const UR: Record<string, string> = {
   'Business name': 'Karobar ka naam',
   'Money when you started': 'Shuru mein paisay',
   'What was in the cash box and the bank on the day you began using the app. Every sale, payment and expense since is added to these.':
-    'Jis din app shuru ki, us din haath mein aur bank mein kitne paisay thay. Us ke baad ki har bikri, lein dein aur kharcha in mein jorra jata hai.',
+    'Jis din app shuru ki, us din haath mein aur bank mein kitne paisay thay. Us ke baad ki har sale, lein dein aur kharcha in mein jorra jata hai.',
   'In the bank': 'Bank mein',
   'Demo records': 'Demo hisaab',
   'The demo keeps its records in this browser only. Start again with the sample books, or with empty ones to try entering your own.':
@@ -394,7 +394,7 @@ export const UR: Record<string, string> = {
   'Enter how many animals (a whole number).': 'Kitne janwar hain, poori ginti likhein.',
   'Enter the price.': 'Qeemat likhein.',
   'Enter how much was received now, or 0.': 'Abhi kitne paisay mile, likhein. Kuch nahi mila to 0 likhein.',
-  'Received now is more than the sale total.': 'Abhi mile paisay bikri ke kul se zyada hain.',
+  'Received now is more than the sale total.': 'Abhi mile paisay sale ke kul se zyada hain.',
   'A walk-in customer must pay in full. Pick a customer to sell on credit.':
     'Bina khata gahak ko poore paisay abhi dene hain. Udhaar dena hai to gahak chunein.',
   'Pick which animal died.': 'Kaun sa janwar mara, chunein.',
@@ -408,11 +408,11 @@ export const UR: Record<string, string> = {
   'Enter the opening balance, or 0.': 'Purana baqaya likhein, ya 0 likhein.',
   'There is already a customer called {name}.': '{name} naam ka gahak pehle se mojood hai.',
   'There is already a supplier called {name}.': '{name} naam ka beopari pehle se mojood hai.',
-  'This challan has sales. Delete those sales first.': 'Is challan ki bikri hui hai. Pehle wo bikri mitayein.',
+  'This challan has sales. Delete those sales first.': 'Is challan ki sales hui hain. Pehle wo sales mitayein.',
   'This challan has deaths recorded. Delete those first.': 'Is challan mein mare hue janwar likhe hain. Pehle wo mitayein.',
   'This challan has expenses linked to it. Delete them or move them off this challan first.':
     'Is challan ke kharchay likhe hain. Pehle unhein mitayein ya kisi aur challan par daalein.',
-  "This customer has sales, so they can't be deleted.": 'Is gahak ki bikri likhi hai, is liye ye nahi mit sakta.',
+  "This customer has sales, so they can't be deleted.": 'Is gahak ki sales likhi hain, is liye ye nahi mit sakta.',
   "This customer has payments, so they can't be deleted.": 'Is gahak ke lein dein likhe hain, is liye ye nahi mit sakta.',
   "This supplier has challans, so they can't be deleted.": 'Is beopari ke challan likhe hain, is liye ye nahi mit sakta.',
   "This supplier has payments, so they can't be deleted.": 'Is beopari ke lein dein likhe hain, is liye ye nahi mit sakta.',
@@ -433,7 +433,7 @@ export const UR: Record<string, string> = {
     'Jo janwar aap ne challan se hataya, wo bik chuka ya mar chuka hai. Pehle usay wapas likhein.',
   'Each kind of animal can be on one line only.': 'Har janwar sirf ek line mein likh sakte hain.',
   'This challan has sales, deaths or expenses. Delete those first.':
-    'Is challan ki bikri, maut ya kharchay likhe hain. Pehle wo mitayein.',
+    'Is challan ki sales, maut ya kharchay likhe hain. Pehle wo mitayein.',
   'There is already a customer with that name.': 'Is naam ka gahak pehle se mojood hai.',
   'There is already a supplier with that name.': 'Is naam ka beopari pehle se mojood hai.',
   "This customer has records, so they can't be deleted.": 'Is gahak ka hisaab likha hai, is liye ye nahi mit sakta.',

@@ -18,7 +18,7 @@ book and bank book, and a monthly report.
 
 ## Roman Urdu
 
-The app opens in Roman Urdu, in the words the mandi uses (bikri, gahak, beopari, khata, udhaar, nakad,
+The app opens in Roman Urdu, in the words the mandi uses (sale, gahak, beopari, khata, udhaar, nakad,
 kharcha, munafa, nuqsan, lene hain / dene hain). The **Urdu | English** switch at the top of every screen
 and on the sign-in page changes it, and each phone remembers its choice. In Urdu, amounts are grouped the
 way traders count them (Rs 12,50,000).
