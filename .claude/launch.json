@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev:demo"],
       "port": 5175
+    },
+    {
+      "name": "mandi-pwa",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["-c", "npm run build:demo && npx vite preview --port 4175 --strictPort"],
+      "port": 4175
     }
   ]
 }

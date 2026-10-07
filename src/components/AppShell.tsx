@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import {
   BookUser,
@@ -17,7 +18,10 @@ import { useAuth } from '../data/auth'
 import { IS_DEMO } from '../data/backend'
 import { useBooks } from '../data/queries'
 import { t } from '../lib/i18n'
+import { keepStorage } from '../lib/pwa'
+import { InstallCard } from './Install'
 import { LangSwitch } from './Lang'
+import { OfflineStrip, OnlineDot, OnlineLine, UpdatePrompt } from './Status'
 import { IconBadge } from './ui'
 import type { Tone } from './ui'
 
@@ -47,7 +51,10 @@ const isFormPage = (pathname: string) => /\/(new|edit)$/.test(pathname)
 function Brand({ name }: { name: string }) {
   return (
     <div className="flex min-w-0 items-center gap-2.5">
-      <img src="/favicon.svg" alt="" className="h-8 w-8 shrink-0" />
+      <span className="relative shrink-0">
+        <img src="/favicon.svg" alt="" className="h-8 w-8" />
+        <OnlineDot />
+      </span>
       <span className="truncate text-[17px] font-semibold tracking-tight">{name || ' '}</span>
       {IS_DEMO ? (
         <span
@@ -66,6 +73,10 @@ export default function AppShell() {
   const { view } = useBooks()
   const { pathname } = useLocation()
   const name = view?.book.settings.business_name ?? ''
+  const loaded = view !== null
+  useEffect(() => {
+    if (loaded) void keepStorage()
+  }, [loaded])
   const more = moreNav()
   const formPage = isFormPage(pathname)
 
@@ -77,7 +88,10 @@ export default function AppShell() {
           <Brand name={name} />
         </div>
         <LangSwitch className="mx-2 mt-4 self-start" />
-        <nav className="mt-6 flex flex-col gap-0.5">
+        <div className="mt-3">
+          <OnlineLine />
+        </div>
+        <nav className="mt-5 flex flex-col gap-0.5">
           {[...mainNav(), ...more.slice(0, 3)].map((item) => (
             <SideLink key={item.to} item={item} />
           ))}
@@ -101,11 +115,14 @@ export default function AppShell() {
       </aside>
 
       <div className="min-w-0 flex-1">
-        {/* Header, on a phone */}
-        <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b border-line-soft bg-ground/90 px-4 backdrop-blur lg:hidden">
-          <Brand name={name} />
-          <LangSwitch />
-        </header>
+        <div className="sticky top-0 z-30">
+          {/* Header, on a phone */}
+          <header className="flex h-14 items-center justify-between gap-3 border-b border-line-soft bg-ground/90 px-4 backdrop-blur lg:hidden">
+            <Brand name={name} />
+            <LangSwitch />
+          </header>
+          <OfflineStrip />
+        </div>
 
         <main
           className={`mx-auto w-full max-w-4xl px-4 pt-5 sm:px-6 lg:pt-8 ${
@@ -115,6 +132,8 @@ export default function AppShell() {
           <Outlet />
         </main>
       </div>
+
+      <UpdatePrompt />
 
       {/* Tabs, on a phone */}
       {formPage ? null : (
@@ -182,6 +201,7 @@ export function MorePage() {
   return (
     <div className="space-y-5">
       <h1 className="text-2xl font-semibold tracking-tight">{t('More')}</h1>
+      <InstallCard compact />
       <div className="card divide-y divide-line-soft overflow-hidden">
         {moreNav().map(({ to, label, Icon, tone }) => (
           <NavLink key={to} to={to} className="flex items-center gap-3 px-4 py-3 font-medium transition hover:bg-sunk/50 active:bg-sunk">

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Languages, LogOut, RotateCcw, Store } from 'lucide-react'
+import { InstallCard, StorageNote } from '../components/Install'
 import { LangSwitch } from '../components/Lang'
 import { Card, ConfirmDialog, ErrorNote, Field, Gate, IconBadge, MoneyInput, PageHeader } from '../components/ui'
 import { useAuth } from '../data/auth'
@@ -54,6 +55,13 @@ function SettingsForm({ view }: { view: Derived }) {
         </div>
         <LangSwitch />
       </Card>
+
+      <div className="space-y-2">
+        <InstallCard />
+        <div className="px-1">
+          <StorageNote />
+        </div>
+      </div>
 
       <form onSubmit={submit}>
         <Card className="space-y-5 p-4 sm:p-5">

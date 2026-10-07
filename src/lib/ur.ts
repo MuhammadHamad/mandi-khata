@@ -333,6 +333,29 @@ export const UR: Record<string, string> = {
   'Bought {animals} for {amount} in this time. Their cost counts as they are sold.':
     'In dinon mein {animals} {amount} mein khareede. In ki laagat bikne par ginti hai.',
 
+  // ------------------------------------------------------- app and offline --
+  Online: 'Online',
+  Offline: 'Offline',
+  'No internet.': 'Internet nahi hai.',
+  'Keep working: everything is saved on this phone.': 'Kaam jaari rakhein: sab kuch is phone par save ho raha hai.',
+  'A new version of the app is ready.': 'App ka naya version tayyar hai.',
+  Update: 'Update karein',
+  'The app now opens without internet too.': 'Ab app internet ke baghair bhi khulegi.',
+  'The app is installed': 'App install ho chuki hai',
+  'Install the app': 'App install karein',
+  'It opens from its own icon, even without internet.': 'Ye apne icon se khulti hai, internet ke baghair bhi.',
+  'In Safari, tap the Share button, then “Add to Home Screen”.':
+    'Safari mein Share ka button dabayein, phir “Add to Home Screen” chunein.',
+  'Open the browser menu and choose “Install app” or “Add to Home screen”.':
+    'Browser ka menu kholein aur “Install app” ya “Add to Home screen” chunein.',
+  'It opens from its own icon like any app, and works without internet.':
+    'Ye baqi apps ki tarah apne icon se khulegi, aur internet ke baghair bhi chalegi.',
+  Install: 'Install karein',
+  'The records on this phone are kept safe: the browser will not clear them.':
+    'Is phone par hisaab mehfooz hai: browser ise nahi mitayega.',
+  'The browser may clear records on this phone when it runs low on space. Installing the app helps keep them.':
+    'Phone mein jagah kam ho to browser yahan ka hisaab mita sakta hai. App install karne se ye mehfooz rehta hai.',
+
   // ------------------------------------------------------------ settings --
   'Words on the screen. Each phone remembers its own choice.': 'Screen ki zubaan. Har phone apni pasand yaad rakhta hai.',
   'Business name': 'Karobar ka naam',
