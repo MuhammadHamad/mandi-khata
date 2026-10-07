@@ -3,8 +3,8 @@ import { useSearchParams } from 'react-router-dom'
 import { ArrowDownLeft, ArrowUpRight, BookUser, Plus, Search } from 'lucide-react'
 import { PartyForm } from '../components/forms'
 import { Avatar, Empty, Gate, PageHeader, Row, Section, TabCards } from '../components/ui'
-import type { Tone } from '../components/ui'
 import { useBooks } from '../data/queries'
+import { TONE_TEXT, balanceTone, balanceWord } from '../lib/balance'
 import { rs } from '../lib/format'
 import { t } from '../lib/i18n'
 import type { PartyKind } from '../lib/types'
@@ -86,7 +86,7 @@ export default function Ledgers() {
               title={p.name}
               sub={p.phone ?? undefined}
               right={Math.abs(balance) < 0.5 ? '—' : rs(Math.abs(balance))}
-              rightSub={<span className={`font-medium ${TEXT[balanceTone(kind, balance)]}`}>{balanceWord(kind, balance)}</span>}
+              rightSub={<span className={`font-medium ${TONE_TEXT[balanceTone(kind, balance)]}`}>{balanceWord(kind, balance)}</span>}
             />
           ))
         )}
@@ -94,27 +94,4 @@ export default function Ledgers() {
       <PartyForm kind={kind} open={adding} onClose={() => setAdding(false)} />
     </div>
   )
-}
-
-const TEXT: Record<Tone, string> = {
-  neutral: 'text-ink-soft',
-  brand: 'text-brand-deep',
-  good: 'text-good',
-  bad: 'text-bad',
-  owed: 'text-owed',
-  bank: 'text-bank',
-}
-
-/** What a balance means, in words: "owes you", "you owe", "advance", "settled". */
-export function balanceWord(kind: PartyKind, balance: number): string {
-  if (Math.abs(balance) < 0.5) return t('Settled')
-  if (kind === 'customer') return balance > 0 ? t('Owes you') : t('Paid in advance')
-  return balance > 0 ? t('You owe') : t('You paid in advance')
-}
-
-/** Money coming to you is green; money you owe is amber; an advance is blue; settled is plain. */
-export function balanceTone(kind: PartyKind, balance: number): Tone {
-  if (Math.abs(balance) < 0.5) return 'neutral'
-  if (balance < 0) return 'bank'
-  return kind === 'customer' ? 'good' : 'owed'
 }

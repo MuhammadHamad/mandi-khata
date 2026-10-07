@@ -4,13 +4,13 @@ import { ArrowLeft, ArrowLeftRight, Banknote, BookOpen, MessageCircle, Pencil, P
 import { PartyForm, PaymentForm } from '../components/forms'
 import { Avatar, Badge, Card, Empty, Gate, IconBadge, PageHeader, Row, Section } from '../components/ui'
 import { useBooks } from '../data/queries'
+import { balanceTone, balanceWord } from '../lib/balance'
 import { customerLedger, supplierLedger } from '../lib/books'
 import type { LedgerEntry } from '../lib/books'
 import { rs, shortDate, todayISO } from '../lib/format'
 import { t } from '../lib/i18n'
 import { balanceMessage, whatsappLink } from '../lib/share'
 import type { Payment, PartyKind } from '../lib/types'
-import { balanceTone, balanceWord } from './Ledgers'
 
 export default function PartyLedger({ kind }: { kind: PartyKind }) {
   const { id = '' } = useParams()

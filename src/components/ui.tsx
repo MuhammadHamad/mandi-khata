@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
@@ -436,28 +436,46 @@ export function Row({
 
 // -------------------------------------------------------------- sheets --
 
+/** Sheets now open, oldest first. */
+const openSheets: number[] = []
+let lastSheet = 0
+
 /** A sheet from the bottom on a phone, a dialog on a bigger screen. */
 export function Modal({
   open,
   onClose,
   title,
+  tall = false,
   children,
 }: {
   open: boolean
   onClose: () => void
   title: string
+  /** Full height on a phone whatever its content, so a search box at the top stays clear of the keyboard. */
+  tall?: boolean
   children: ReactNode
 }) {
+  // The latest onClose, without reopening the sheet's place in the stack on every render.
+  const close = useRef(onClose)
+  useEffect(() => {
+    close.current = onClose
+  })
   useEffect(() => {
     if (!open) return
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    const me = ++lastSheet
+    openSheets.push(me)
+    // Sheets open on top of sheets (a picker inside a form): Escape closes only the top one.
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && openSheets[openSheets.length - 1] === me) close.current()
+    }
     document.addEventListener('keydown', onKey)
     document.body.style.overflow = 'hidden'
     return () => {
       document.removeEventListener('keydown', onKey)
-      document.body.style.overflow = ''
+      openSheets.splice(openSheets.indexOf(me), 1)
+      if (openSheets.length === 0) document.body.style.overflow = ''
     }
-  }, [open, onClose])
+  }, [open])
 
   if (!open) return null
   // Into <body>, not the page: a sheet opened from inside a page's form must
@@ -469,7 +487,9 @@ export function Modal({
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="relative flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-[1.75rem] bg-paper shadow-2xl sm:max-w-lg sm:rounded-3xl"
+        className={`relative flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-[1.75rem] bg-paper shadow-2xl sm:max-w-lg sm:rounded-3xl ${
+          tall ? 'h-[88dvh] sm:h-[min(42rem,85vh)]' : ''
+        }`}
       >
         <div className="mx-auto mt-2.5 h-1.5 w-10 shrink-0 rounded-full bg-line sm:hidden" aria-hidden />
         <div className="flex items-center justify-between gap-3 px-5 pt-3 pb-2 sm:pt-5">

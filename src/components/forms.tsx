@@ -5,7 +5,7 @@
  */
 import { useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
-import { Trash2 } from 'lucide-react'
+import { Receipt, Trash2 } from 'lucide-react'
 import { backend } from '../data/backend'
 import { useAction, useBooks } from '../data/queries'
 import { expenseCategories, paymentLabel } from '../lib/books'
@@ -22,8 +22,9 @@ import {
 } from '../lib/rules'
 import type { Account, Death, Expense, Party, PartyInput, PartyKind, Payment, PaymentKind } from '../lib/types'
 import { Combobox } from './Combobox'
+import { SearchPicker } from './SearchPicker'
 import { AccountPills, LinePicker, PartyPicker } from './pickers'
-import { ConfirmDialog, CountInput, ErrorNote, Field, Loading, Modal, MoneyInput } from './ui'
+import { ConfirmDialog, CountInput, ErrorNote, Field, IconBadge, Loading, Modal, MoneyInput, NumberBadge } from './ui'
 
 type Opened = { open: boolean; onClose: () => void }
 
@@ -69,6 +70,7 @@ function Sheet({ open, onClose, title, children }: Opened & { title: string; chi
 export function PartyForm({
   kind,
   party,
+  name,
   open,
   onClose,
   onSaved,
@@ -76,6 +78,8 @@ export function PartyForm({
 }: Opened & {
   kind: PartyKind
   party?: Party
+  /** For a new one: the name already typed while looking for them. */
+  name?: string
   onSaved?: (id: string) => void
   onDeleted?: () => void
 }) {
@@ -89,7 +93,17 @@ export function PartyForm({
         : t('New supplier')
   return (
     <Sheet open={open} onClose={onClose} title={title}>
-      {(view) => <PartyBody view={view} kind={kind} party={party} onClose={onClose} onSaved={onSaved} onDeleted={onDeleted} />}
+      {(view) => (
+        <PartyBody
+          view={view}
+          kind={kind}
+          party={party}
+          startName={name}
+          onClose={onClose}
+          onSaved={onSaved}
+          onDeleted={onDeleted}
+        />
+      )}
     </Sheet>
   )
 }
@@ -98,6 +112,7 @@ function PartyBody({
   view,
   kind,
   party,
+  startName,
   onClose,
   onSaved,
   onDeleted,
@@ -105,11 +120,12 @@ function PartyBody({
   view: Derived
   kind: PartyKind
   party?: Party
+  startName?: string
   onClose: () => void
   onSaved?: (id: string) => void
   onDeleted?: () => void
 }) {
-  const [name, setName] = useState(party?.name ?? '')
+  const [name, setName] = useState(party?.name ?? startName ?? '')
   const [phone, setPhone] = useState(party?.phone ?? '')
   const [opening, setOpening] = useState(party?.opening_balance ? plain(party.opening_balance) : '')
   const [notes, setNotes] = useState(party?.notes ?? '')
@@ -482,16 +498,35 @@ function ExpenseBody({
         label={t('For which challan')}
         hint={challan ? t("It comes off that challan's profit, and this month's.") : t("General costs come off the month's profit only.")}
       >
-        <select className="field" value={challan} onChange={(e) => setChallan(e.target.value)}>
-          <option value="">{t('Not for one challan (rent, wages…)')}</option>
-          {view.challans.map((c) => (
-            <option key={c.challan.id} value={c.challan.id}>
-              {`#${c.challan.number} · ${c.supplier?.name ?? t('Supplier')} · ${shortDate(c.challan.bought_on)}${
-                c.closed ? ` · ${t('sold out')}` : ''
-              }`}
-            </option>
-          ))}
-        </select>
+        <SearchPicker
+          value={challan}
+          onChange={setChallan}
+          title={t('For which challan')}
+          placeholder={t('Not for one challan (rent, wages…)')}
+          searchPlaceholder={t('Search by supplier or challan')}
+          emptyText={t('No challans yet')}
+          items={[
+            { id: '', title: t('Not for one challan (rent, wages…)'), pinned: true, leading: <IconBadge icon={Receipt} /> },
+            // Challans with animals still in hand first, newest first in each.
+            ...[...view.challans]
+              .sort((a, b) => Number(a.closed) - Number(b.closed) || b.challan.number - a.challan.number)
+              .map((c) => {
+                const supplier = c.supplier?.name ?? t('Supplier')
+                return {
+                  id: c.challan.id,
+                  group: c.closed ? t('Sold out') : t('Animals in stock'),
+                  title: `${t('Challan #{n}', { n: c.challan.number })} · ${supplier}`,
+                  sub: t('bought {date}', { date: shortDate(c.challan.bought_on) }),
+                  right: c.closed ? undefined : t('{n} left', { n: c.left }),
+                  words: `#${c.challan.number}`,
+                  leading: <NumberBadge n={c.challan.number} />,
+                  label: `#${c.challan.number} · ${supplier} · ${shortDate(c.challan.bought_on)}${
+                    c.closed ? ` · ${t('sold out')}` : ''
+                  }`,
+                }
+              }),
+          ]}
+        />
       </Field>
       <div className="grid grid-cols-2 gap-3">
         <Field label={t('Date')}>
