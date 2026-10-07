@@ -1,8 +1,10 @@
 import { useEffect } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import {
+  AlertTriangle,
   BookUser,
   ChartColumn,
+  CloudUpload,
   ChevronRight,
   Ellipsis,
   House,
@@ -16,12 +18,12 @@ import {
 import type { LucideIcon } from 'lucide-react'
 import { useAuth } from '../data/auth'
 import { IS_DEMO } from '../data/backend'
-import { useBooks } from '../data/queries'
+import { useBooks, useSync } from '../data/queries'
 import { t } from '../lib/i18n'
 import { keepStorage } from '../lib/pwa'
 import { InstallCard } from './Install'
 import { LangSwitch } from './Lang'
-import { OfflineStrip, OnlineDot, OnlineLine, UpdatePrompt } from './Status'
+import { OfflineStrip, OnlineDot, OnlineLine, SyncSheet, UpdatePrompt, needYou, openSyncSheet, waitingWords } from './Status'
 import { IconBadge } from './ui'
 import type { Tone } from './ui'
 
@@ -134,6 +136,7 @@ export default function AppShell() {
       </div>
 
       <UpdatePrompt />
+      <SyncSheet />
 
       {/* Tabs, on a phone */}
       {formPage ? null : (
@@ -198,10 +201,31 @@ function TabLink({ item: { to, label, Icon, end } }: { item: NavItem }) {
 /** The More tab on a phone: the pages that do not fit in the tab bar. */
 export function MorePage() {
   const { user, signOut } = useAuth()
+  const sync = useSync()
   return (
     <div className="space-y-5">
       <h1 className="text-2xl font-semibold tracking-tight">{t('More')}</h1>
       <InstallCard compact />
+      {sync ? (
+        <button
+          type="button"
+          onClick={() => openSyncSheet()}
+          className="card flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-sunk/50 active:bg-sunk"
+        >
+          <IconBadge icon={sync.problems.length ? AlertTriangle : CloudUpload} tone={sync.problems.length ? 'bad' : 'bank'} />
+          <span className="min-w-0 flex-1">
+            <span className="block font-medium">{t('Sync with the server')}</span>
+            <span className="block text-sm text-ink-soft">
+              {sync.problems.length
+                ? needYou(sync.problems.length)
+                : sync.waiting
+                  ? waitingWords(sync.waiting)
+                  : t('Everything is saved on the server')}
+            </span>
+          </span>
+          <ChevronRight className="h-4 w-4 text-ink-faint" aria-hidden />
+        </button>
+      ) : null}
       <div className="card divide-y divide-line-soft overflow-hidden">
         {moreNav().map(({ to, label, Icon, tone }) => (
           <NavLink key={to} to={to} className="flex items-center gap-3 px-4 py-3 font-medium transition hover:bg-sunk/50 active:bg-sunk">

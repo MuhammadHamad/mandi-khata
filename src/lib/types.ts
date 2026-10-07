@@ -1,7 +1,13 @@
 /** Where money sits: the cash box or the bank account. */
 export type Account = 'cash' | 'bank'
 
-export type Settings = {
+/**
+ * Kept with each record read from the server, for working offline: the record's
+ * version there, and the change that last wrote it. Absent in the demo.
+ */
+export type Synced = { version?: number; last_op?: string | null }
+
+export type Settings = Synced & {
   business_name: string
   /** Money in hand and in the bank on the day the business started using the app. */
   opening_cash: number
@@ -9,7 +15,7 @@ export type Settings = {
 }
 
 /** A customer or a supplier. Both keep a running ledger. */
-export type Party = {
+export type Party = Synced & {
   id: string
   name: string
   phone: string | null
@@ -25,7 +31,7 @@ export type Party = {
 export type PartyKind = 'customer' | 'supplier'
 
 /** One bulk purchase of animals. */
-export type Challan = {
+export type Challan = Synced & {
   id: string
   number: number
   bought_on: string
@@ -47,7 +53,7 @@ export type ChallanLine = {
   position: number
 }
 
-export type Sale = {
+export type Sale = Synced & {
   id: string
   number: number
   sold_on: string
@@ -72,7 +78,7 @@ export type SaleLine = {
   position: number
 }
 
-export type Death = {
+export type Death = Synced & {
   id: string
   died_on: string
   challan_line_id: string
@@ -90,7 +96,7 @@ export type PaymentKind =
   | 'owner_out'
 
 /** Money that moves on its own: a later payment, a transfer, or the owner's own money. */
-export type Payment = {
+export type Payment = Synced & {
   id: string
   paid_on: string
   kind: PaymentKind
@@ -103,7 +109,7 @@ export type Payment = {
   created_at: string
 }
 
-export type Expense = {
+export type Expense = Synced & {
   id: string
   spent_on: string
   category: string

@@ -24,9 +24,12 @@ import Setup from './pages/Setup'
 
 // One business's books, changed only through this app: what was loaded a
 // minute ago is still right, and every save reloads what it touched.
+// The books live on the phone and saves go there first, so nothing waits for a
+// connection here (React Query would otherwise hold every save while offline).
 const queryClient = new QueryClient({
   defaultOptions: {
-    queries: { staleTime: 60_000, refetchOnWindowFocus: true, retry: 1 },
+    queries: { staleTime: 60_000, refetchOnWindowFocus: true, retry: 1, networkMode: 'always' },
+    mutations: { networkMode: 'always' },
   },
 })
 

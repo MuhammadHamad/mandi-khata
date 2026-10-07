@@ -37,6 +37,32 @@ add the Roman Urdu to `ur.ts`. `npm run check:i18n` lists any phrase that has no
   that died that month − all that month's expenses. A big purchase counts only as its animals are sold.
 - **Cash and bank** start from the opening balances in Settings, plus every rupee in, minus every rupee out.
 
+## Works offline, installs like an app
+
+The app is a Progressive Web App. Chrome and Edge offer **Install** (in Settings and on the More page, or
+the browser's own install button); on an iPhone, Safari's **Share → Add to Home Screen**. Installed or not,
+its pages are kept on the phone, so it opens with no internet. A long press on the icon goes straight to
+New sale, New challan or Khatay.
+
+With a real database, the books are worked offline first:
+
+- Every page opens from the copy kept on the phone (IndexedDB), so records already loaded can be read,
+  added to, changed and deleted with no internet. Saves check the same rules as the server and show at
+  once.
+- Each change is kept on the phone before anything else, then queued for the server. The queue is sent in
+  order as soon as the server can be reached: when the connection returns, when the app comes back on
+  screen, and every two minutes. A change is sent with its own id, so one sent twice on a bad connection
+  is saved once.
+- A record changed on two phones at once is not written over: the second phone is asked which copy should
+  stay. A change the server refuses (another phone sold the last animals first) is kept with the reason,
+  to be tried again or dropped, and whatever depends on it waits for it.
+- A dot on the logo and a strip under the header say whether the phone is online and what is waiting. A tap
+  opens the list, with the buttons to settle any trouble. Signing out with changes still waiting asks
+  first; they stay on the phone and go with the next sign-in.
+
+The browser can wake the open app when the connection returns (Chrome and Edge); the changes themselves
+are always sent by the app, so a closed app sends them the next time it opens.
+
 ## Try it (no database needed)
 
 ```bash
@@ -51,7 +77,8 @@ browser. Settings can load the sample again or start empty.
 
 1. Create a project at [supabase.com](https://supabase.com) (the free plan is enough to start).
 2. In the project, open **SQL Editor**, paste all of `supabase/setup.sql`, and press **Run**. It is safe to run
-   again later.
+   again later, and must be run again after updating the app (offline syncing needs its `apply_change`
+   function and the version on each record).
 3. Open **Authentication → Users → Add user** and create the business's login (email and password). Staff of
    one business share its login. Each login is a separate business with its own records.
 4. In **Authentication → Sign In / Providers**, turn off new sign-ups, so only the logins you create can get in.
@@ -76,6 +103,13 @@ paying only part, deleting a challan that has sales), and that one login can nev
 records. It also checks that Roman Urdu gives the same figures and explains mistakes in Urdu, and that
 every phrase on screen has its Roman Urdu.
 
+For offline work it plays two phones of one business against that database, with a connection that can be
+cut or lose a reply: changes made offline reach the server in order, a change sent twice is saved once,
+an edit made on both phones comes back as a conflict that can be kept or dropped, the last animal sold on
+both phones refuses the second sale with its reason, a refused customer holds back the sale that needs it
+until it is fixed, waiting changes survive the app being closed, and at the end both phones and the
+server agree to the rupee.
+
 ## Where things are
 
 | Path | What it holds |
@@ -83,7 +117,10 @@ every phrase on screen has its Roman Urdu.
 | `src/lib/books.ts` | Every calculation: stock, profit, ledgers, cash book, monthly report |
 | `src/lib/rules.ts` | What may be saved or deleted, with the messages staff see |
 | `src/lib/i18n.ts`, `src/lib/ur.ts` | The language switch and the Roman Urdu for every phrase |
-| `src/data/live.ts` | The Supabase backend |
+| `src/data/live.ts` | The Supabase backend: sign-in, and fetching and sending through `apply_change` |
+| `src/data/synced.ts`, `src/data/local.ts` | Working offline: the copy on the phone, the queue, conflicts and refusals |
+| `src/data/changes.ts` | One change as data, and how it is made to the books (shared by the demo and the queue) |
+| `src/components/Status.tsx` | The online dot and strip, the sync list, and the new-version prompt |
 | `src/data/demo.ts`, `src/data/sample.ts` | The in-browser demo and its sample records |
-| `supabase/setup.sql` | Tables, row-level security, the stock check, and the save functions |
+| `supabase/setup.sql` | Tables, row-level security, the stock check, the save functions, and `apply_change` for syncing |
 | `scripts/verify.ts` | The checks above |

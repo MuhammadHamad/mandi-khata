@@ -32,6 +32,11 @@ import { uuid } from '../src/lib/ids'
 import { periodAround, readPeriod, stepPeriod, writePeriod } from '../src/lib/period'
 import { checkSale } from '../src/lib/rules'
 import { balanceMessage, challanMessage, whatsappLink, whatsappNumber } from '../src/lib/share'
+import { memoryLocal } from '../src/data/local'
+import type { LocalStore } from '../src/data/local'
+import { Unreachable, createSyncedBackend } from '../src/data/synced'
+import type { Remote } from '../src/data/synced'
+import { wire } from '../src/data/wire'
 import { UR } from '../src/lib/ur'
 import { SETUP_SQL, addUser, as, freshDb } from './pglite'
 
@@ -559,6 +564,288 @@ async function checkWhatsApp(): Promise<void> {
   })
 }
 
+// --------------------------------------------------------- offline sync --
+
+/** The phone's link to the server in the checks: it can be cut, or lose one reply after the server acted. */
+type Net = { up: boolean; loseNextReply: boolean }
+
+function pgRemote(db: PGlite, uid: string, net: Net): Remote {
+  const reader = sqlBackend(db, uid)
+  return {
+    async pull() {
+      if (!net.up) throw new Unreachable('offline')
+      return reader.load()
+    },
+    async push(q) {
+      if (!net.up) throw new Unreachable('offline')
+      const rows = await as(db, uid, async () =>
+        (await db.query<{ r: { status: 'ok' | 'conflict'; number?: number | null } }>('select public.apply_change($1::jsonb) as r', [
+          JSON.stringify(wire(q)),
+        ])).rows,
+      )
+      if (net.loseNextReply) {
+        net.loseNextReply = false
+        throw new Unreachable('the reply was lost on the way back')
+      }
+      const r = rows[0].r
+      return r.status === 'conflict' ? { status: 'conflict' } : { status: 'ok', number: r.number ?? null }
+    },
+  }
+}
+
+/** Two phones of one business, A and B, each with its own copy and its own connection. */
+function phone(db: PGlite, uid: string, email: string, local: LocalStore = memoryLocal(), net: Net = { up: true, loseNextReply: false }) {
+  const api = createSyncedBackend({
+    remote: pgRemote(db, uid, net),
+    auth: {
+      session: async () => ({ email }),
+      onAuthChange: () => () => {},
+      signIn: async () => ({ email }),
+      signOut: async () => {},
+    },
+    local,
+    isOnline: () => net.up,
+    timers: false,
+  })
+  return { api, net, local }
+}
+
+async function checkOfflineSync(db: PGlite, demoBook: Book): Promise<void> {
+  const owner = uuid()
+  const email = 'sync@mandi.test'
+  await addUser(db, owner, email)
+  const server = sqlBackend(db, owner)
+  const A = phone(db, owner, email)
+  const B = phone(db, owner, email)
+  const { fillSample } = await import('../src/data/sample')
+  /** A sync check: both phones start online, whatever the one before left behind. */
+  const step = (name: string, fn: () => Promise<unknown>) =>
+    check(`sync: ${name}`, async () => {
+      A.net.up = B.net.up = true
+      A.net.loseNextReply = B.net.loseNextReply = false
+      await fn()
+    })
+  const waiting = (p: ReturnType<typeof phone>) => p.api.sync.state().waiting
+  const problems = (p: ReturnType<typeof phone>) => p.api.sync.state().problems
+
+  await step('a phone keeps its changes and sends them all, in order, through the real rules', async () => {
+    await A.api.load()
+    await fillSample(A.api, TODAY)
+    assert.ok(waiting(A) > 40, `only ${waiting(A)} waiting`)
+    assert.deepEqual(figures(await A.api.load()), figures(demoBook))
+    await A.api.sync.syncNow()
+    assert.equal(A.api.sync.state().queue.length, 0)
+    assert.deepEqual(figures(await server.load()), figures(demoBook))
+    assert.deepEqual(figures(await A.api.load()), figures(demoBook))
+    assert.deepEqual(figures(await B.api.load()), figures(demoBook))
+  })
+
+  // An expense from the sample, the same one each time.
+  const someExpense = async () => [...(await server.load()).expenses].sort((a, b) => a.id.localeCompare(b.id))[0]
+  const newExpense = (amount: number) => ({
+    id: uuid(),
+    spent_on: TODAY,
+    category: 'Sync check',
+    amount,
+    paid_from: 'cash' as const,
+    challan_id: null,
+    notes: null,
+  })
+
+  await step('offline, a save shows at once and waits; back online, it reaches the server', async () => {
+    A.net.up = false
+    const e = newExpense(1_234)
+    await A.api.saveExpense(e)
+    assert.ok((await A.api.load()).expenses.some((x) => x.id === e.id))
+    assert.equal(waiting(A), 1)
+    assert.equal(A.api.sync.state().online, false)
+    assert.ok(!(await server.load()).expenses.some((x) => x.id === e.id))
+    await A.api.sync.syncNow()
+    assert.equal(waiting(A), 1, 'nothing goes while the connection is down')
+    A.net.up = true
+    await A.api.sync.syncNow()
+    assert.equal(waiting(A), 0)
+    assert.ok((await server.load()).expenses.some((x) => x.id === e.id))
+  })
+
+  await step('a change whose reply was lost is done once, and an edit after it still lands', async () => {
+    const p = { id: uuid(), paid_on: TODAY, kind: 'owner_in' as const, customer_id: null, supplier_id: null, account: 'cash' as const, amount: 5_000, notes: null }
+    A.net.loseNextReply = true
+    await A.api.savePayment(p)
+    await A.api.sync.syncNow()
+    assert.equal(waiting(A), 1, 'the phone never heard back, so it still holds the change')
+    assert.equal((await server.load()).payments.filter((x) => x.id === p.id).length, 1)
+    await A.api.savePayment({ ...p, amount: 6_000 })
+    await A.api.sync.syncNow()
+    assert.equal(A.api.sync.state().queue.length, 0)
+    assert.deepEqual(problems(A), [])
+    const saved = (await server.load()).payments.find((x) => x.id === p.id)!
+    assert.deepEqual([r2(saved.amount), saved.version], [6_000, 2])
+  })
+
+  await step('two phones change one record; the second hears of it and can keep its own copy', async () => {
+    const e = await someExpense()
+    await A.api.sync.syncNow()
+    await B.api.sync.syncNow()
+    await B.api.saveExpense({ ...e, amount: 7_000 })
+    await B.api.sync.syncNow()
+    A.net.up = false
+    await A.api.saveExpense({ ...e, amount: 8_000 })
+    A.net.up = true
+    await A.api.sync.syncNow()
+    assert.equal(problems(A).length, 1)
+    assert.equal(problems(A)[0].state, 'conflict')
+    assert.equal(r2((await server.load()).expenses.find((x) => x.id === e.id)!.amount), 7_000, "B's copy stands meanwhile")
+    await A.api.sync.keepMine(problems(A)[0].op)
+    assert.deepEqual(problems(A), [])
+    assert.equal(r2((await server.load()).expenses.find((x) => x.id === e.id)!.amount), 8_000)
+    await B.api.sync.syncNow()
+    assert.equal(r2((await B.api.load()).expenses.find((x) => x.id === e.id)!.amount), 8_000)
+  })
+
+  await step("or it can drop its change and take the other phone's", async () => {
+    const e = await someExpense()
+    await A.api.sync.syncNow()
+    await B.api.saveExpense({ ...e, amount: 9_000 })
+    await B.api.sync.syncNow()
+    A.net.up = false
+    await A.api.saveExpense({ ...e, amount: 1_000 })
+    A.net.up = true
+    await A.api.sync.syncNow()
+    assert.equal(problems(A)[0]?.state, 'conflict')
+    await A.api.sync.drop(problems(A)[0].op)
+    assert.equal(A.api.sync.state().queue.length, 0)
+    assert.equal(r2((await A.api.load()).expenses.find((x) => x.id === e.id)!.amount), 9_000)
+    assert.equal(r2((await server.load()).expenses.find((x) => x.id === e.id)!.amount), 9_000)
+  })
+
+  await step('the last animal sold on two phones: the second is refused, kept with the reason, and can be dropped', async () => {
+    await A.api.sync.syncNow()
+    await B.api.sync.syncNow()
+    const d = derive(await A.api.load())
+    const line = d.challans.find((c) => c.challan.number === 2)!.lines.find((s) => s.left === 1)!
+    const sell = () => ({
+      id: uuid(),
+      sold_on: TODAY,
+      customer_id: null,
+      received_now: 310_000,
+      received_in: 'cash' as const,
+      notes: null,
+      lines: [{ id: uuid(), challan_line_id: line.line.id, head: 1, amount: 310_000, damaged: false }],
+    })
+    A.net.up = false
+    const mine = sell()
+    await A.api.saveSale(mine)
+    await B.api.saveSale(sell())
+    await B.api.sync.syncNow()
+    A.net.up = true
+    await A.api.sync.syncNow()
+    assert.equal(problems(A).length, 1)
+    assert.equal(problems(A)[0].state, 'failed')
+    assert.match(problems(A)[0].problem ?? '', /Challan #2/)
+    const after = derive(await A.api.load())
+    assert.ok(!after.book.sales.some((s) => s.id === mine.id), "the refused sale is not counted in the phone's books")
+    assert.equal(after.stats.get(line.line.id)!.left, 0)
+    await A.api.sync.drop(problems(A)[0].op)
+    assert.equal(A.api.sync.state().queue.length, 0)
+  })
+
+  await step('what depends on a refused change waits for it, and goes once it is fixed', async () => {
+    await A.api.sync.syncNow()
+    await B.api.saveParty('customer', { id: uuid(), name: 'Haji Rafiq', phone: null, notes: null, opening_balance: 0 })
+    await B.api.sync.syncNow()
+    A.net.up = false
+    const rafiq = { id: uuid(), name: 'Haji Rafiq', phone: '0300 1111111', notes: null, opening_balance: 0 }
+    await A.api.saveParty('customer', rafiq)
+    const bakra = derive(await A.api.load()).challans.find((c) => c.challan.number === 3)!.lines.find((s) => s.left > 0)!
+    const sale = {
+      id: uuid(),
+      sold_on: TODAY,
+      customer_id: rafiq.id,
+      received_now: 0,
+      received_in: 'cash' as const,
+      notes: null,
+      lines: [{ id: uuid(), challan_line_id: bakra.line.id, head: 1, amount: 60_000, damaged: false }],
+    }
+    await A.api.saveSale(sale)
+    A.net.up = true
+    await A.api.sync.syncNow()
+    assert.equal(problems(A).length, 2, 'the customer is refused and the sale waits on it')
+    assert.match(problems(A).find((q) => q.entity === 'customer')!.problem ?? '', /name|already/i)
+    assert.ok(!(await server.load()).sales.some((s) => s.id === sale.id), 'the sale was not sent ahead of its customer')
+    await A.api.saveParty('customer', { ...rafiq, name: 'Haji Rafiq (Lahore)' })
+    await A.api.sync.syncNow()
+    assert.deepEqual(problems(A), [])
+    const b = await server.load()
+    assert.ok(b.customers.some((c) => c.name === 'Haji Rafiq (Lahore)'))
+    assert.ok(b.sales.some((s) => s.id === sale.id && s.customer_id === rafiq.id))
+  })
+
+  await step('changes waiting on a phone survive the app being closed, and go when it opens online', async () => {
+    const shared = memoryLocal()
+    const first = phone(db, owner, email, shared)
+    await first.api.load()
+    first.net.up = false
+    const e = newExpense(2_222)
+    await first.api.saveExpense(e)
+    const reopened = phone(db, owner, email, shared, { up: false, loseNextReply: false })
+    const book = await reopened.api.load()
+    assert.ok(book.expenses.some((x) => x.id === e.id), 'the books open offline, with the change in them')
+    assert.equal(waiting(reopened), 1)
+    reopened.net.up = true
+    await reopened.api.sync.syncNow()
+    assert.equal(waiting(reopened), 0)
+    assert.ok((await server.load()).expenses.some((x) => x.id === e.id))
+  })
+
+  await step('a record made and deleted offline never reaches the server at all', async () => {
+    A.net.up = false
+    const e = newExpense(3_333)
+    await A.api.saveExpense(e)
+    await A.api.deleteExpense(e.id)
+    assert.equal(A.api.sync.state().queue.length, 0)
+    A.net.up = true
+  })
+
+  await step('a delete of something changed on another phone asks first, then goes if kept', async () => {
+    const e = newExpense(4_444)
+    await A.api.saveExpense(e)
+    await A.api.sync.syncNow()
+    await B.api.sync.syncNow()
+    await B.api.saveExpense({ ...e, amount: 4_445 })
+    await B.api.sync.syncNow()
+    A.net.up = false
+    await A.api.deleteExpense(e.id)
+    A.net.up = true
+    await A.api.sync.syncNow()
+    assert.equal(problems(A)[0]?.state, 'conflict')
+    await A.api.sync.keepMine(problems(A)[0].op)
+    assert.ok(!(await server.load()).expenses.some((x) => x.id === e.id))
+  })
+
+  await step('the business settings change offline and reach the server', async () => {
+    A.net.up = false
+    const s = (await A.api.load()).settings
+    await A.api.saveSettings({ business_name: 'Sync Mandi', opening_cash: s.opening_cash, opening_bank: s.opening_bank })
+    A.net.up = true
+    await A.api.sync.syncNow()
+    assert.equal((await server.load()).settings.business_name, 'Sync Mandi')
+  })
+
+  await step('a new phone with no copy, offline, says so instead of opening empty books', async () => {
+    const fresh = phone(db, owner, email, memoryLocal(), { up: false, loseNextReply: false })
+    await assert.rejects(fresh.api.load(), /No internet/)
+  })
+
+  await step('after all that, both phones and the server agree', async () => {
+    await A.api.sync.syncNow()
+    await B.api.sync.syncNow()
+    const truth = figures(await server.load())
+    assert.deepEqual(figures(await A.api.load()), truth)
+    assert.deepEqual(figures(await B.api.load()), truth)
+  })
+}
+
 async function main() {
   // The checks read English messages; Roman Urdu has its own checks below.
   setLang('en')
@@ -631,6 +918,8 @@ async function main() {
       db.query("insert into public.payments (paid_on, kind, account, amount) values ('2026-10-06', 'cash_to_bank', 'cash', 5)"),
     ),
   )
+
+  await checkOfflineSync(db, demoBook)
 
   console.log(`\n${passed} checks passed${failures.length ? `, ${failures.length} failed:` : '.'}`)
   for (const f of failures) console.log(`\n  ✗ ${f}`)

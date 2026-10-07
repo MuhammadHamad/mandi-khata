@@ -76,6 +76,18 @@ export function monthLabel(key: string): string {
   return Number.isNaN(d.getTime()) ? key : MONTH_FMT.format(d)
 }
 
+/** How long ago something happened: "just now", "5 min ago", "3 hours ago", or its date. */
+export function ago(iso: string, now = Date.now()): string {
+  const seconds = Math.max(0, (now - Date.parse(iso)) / 1000)
+  if (!Number.isFinite(seconds)) return ''
+  if (seconds < 60) return t('just now')
+  const minutes = Math.round(seconds / 60)
+  if (minutes < 60) return t('{n} min ago', { n: minutes })
+  const hours = Math.round(minutes / 60)
+  if (hours < 24) return t('{n} hours ago', { n: hours })
+  return shortDate(iso.slice(0, 10))
+}
+
 /** Today on this phone's own calendar, as `YYYY-MM-DD`. */
 export function todayISO(): string {
   const now = new Date()

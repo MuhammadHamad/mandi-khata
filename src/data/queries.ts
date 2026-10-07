@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useSyncExternalStore } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { derive } from '../lib/books'
 import { useAuth } from './auth'
@@ -30,4 +30,14 @@ export function useAction<A, R>(run: (args: A) => Promise<R>) {
     mutationFn: run,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['book'] }),
   })
+}
+
+const noSync = () => () => {}
+const nothing = () => null
+
+/** The queue of changes waiting for the server, and its troubles; null in the demo, which has no server. */
+export function useSync() {
+  const sync = backend.sync
+  const state = useSyncExternalStore(sync ? sync.subscribe : noSync, sync ? sync.state : nothing, nothing)
+  return sync && state ? { ...state, control: sync } : null
 }

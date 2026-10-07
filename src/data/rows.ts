@@ -21,10 +21,18 @@ type Raw = Record<string, unknown>
 const n = (v: unknown) => Number(v ?? 0)
 const s = (v: unknown) => (v === null || v === undefined ? null : String(v))
 const date = (v: unknown) => String(v).slice(0, 10)
+/** The server's version of a record and the change that last wrote it, when the columns are there. */
+const synced = (r: Raw) =>
+  r.version === undefined || r.version === null ? {} : { version: n(r.version), last_op: s(r.last_op) }
 
 export function toSettings(r: Raw | null): Settings {
   if (!r) return { ...DEFAULT_SETTINGS }
-  return { business_name: String(r.business_name), opening_cash: n(r.opening_cash), opening_bank: n(r.opening_bank) }
+  return {
+    business_name: String(r.business_name),
+    opening_cash: n(r.opening_cash),
+    opening_bank: n(r.opening_bank),
+    ...synced(r),
+  }
 }
 
 export function toParty(r: Raw): Party {
@@ -35,6 +43,7 @@ export function toParty(r: Raw): Party {
     notes: s(r.notes),
     opening_balance: n(r.opening_balance),
     created_at: String(r.created_at),
+    ...synced(r),
   }
 }
 
@@ -48,6 +57,7 @@ export function toChallan(r: Raw): Challan {
     paid_from: r.paid_from === 'bank' ? 'bank' : 'cash',
     notes: s(r.notes),
     created_at: String(r.created_at),
+    ...synced(r),
   }
 }
 
@@ -72,6 +82,7 @@ export function toSale(r: Raw): Sale {
     received_in: r.received_in === 'bank' ? 'bank' : 'cash',
     notes: s(r.notes),
     created_at: String(r.created_at),
+    ...synced(r),
   }
 }
 
@@ -95,6 +106,7 @@ export function toDeath(r: Raw): Death {
     head: n(r.head),
     cause: s(r.cause),
     created_at: String(r.created_at),
+    ...synced(r),
   }
 }
 
@@ -109,6 +121,7 @@ export function toPayment(r: Raw): Payment {
     amount: n(r.amount),
     notes: s(r.notes),
     created_at: String(r.created_at),
+    ...synced(r),
   }
 }
 
@@ -122,6 +135,7 @@ export function toExpense(r: Raw): Expense {
     challan_id: s(r.challan_id),
     notes: s(r.notes),
     created_at: String(r.created_at),
+    ...synced(r),
   }
 }
 

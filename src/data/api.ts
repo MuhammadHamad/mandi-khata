@@ -10,6 +10,8 @@ import type {
   Settings,
 } from '../lib/types'
 
+import type { SyncControl } from './synced'
+
 export type User = { email: string }
 
 /**
@@ -42,6 +44,9 @@ export type Backend = {
 
   /** Demo only: start over, empty or with the sample books. */
   resetDemo?(withSample: boolean): Promise<void>
+
+  /** Live only: the queue of changes made on this phone and not yet on the server. */
+  sync?: SyncControl
 }
 
 /** Blank text is stored as nothing. */

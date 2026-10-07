@@ -56,6 +56,8 @@ export default defineConfig(({ command, mode }) => {
           // Every page of the app opens offline: they are all index.html.
           navigateFallback: '/index.html',
           cleanupOutdatedCaches: true,
+          // Wakes the open app to send its waiting changes when the connection comes back.
+          importScripts: ['/sync-sw.js'],
         },
       }),
     ],

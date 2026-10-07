@@ -429,3 +429,173 @@ revoke all on function public.save_challan(jsonb, jsonb) from public, anon;
 revoke all on function public.save_sale(jsonb, jsonb) from public, anon;
 grant execute on function public.save_challan(jsonb, jsonb) to authenticated;
 grant execute on function public.save_sale(jsonb, jsonb) to authenticated;
+
+-- ------------------------------------------------------- offline sync --
+
+-- Phones keep working without internet and send their changes when they can.
+-- Every record carries a version, raised by each change, and the id of the
+-- change that last wrote it, so that:
+--   * a change sent twice (its reply lost on a bad connection) is done once;
+--   * a change made to an older copy of a record than the one stored here is
+--     not written over someone else's, but handed back as a conflict.
+do $$
+declare
+  t text;
+begin
+  foreach t in array array[
+    'settings', 'customers', 'suppliers', 'challans', 'sales', 'deaths', 'payments', 'expenses'
+  ] loop
+    execute format('alter table public.%I add column if not exists version integer not null default 1', t);
+    execute format('alter table public.%I add column if not exists last_op uuid', t);
+  end loop;
+end $$;
+
+-- Applies one change sent by a phone, all of it or none:
+--   p ->> 'op'      the change's own id, made on the phone
+--   p ->> 'entity'  challan, sale, death, payment, expense, customer, supplier or settings
+--   p ->> 'action'  save or delete
+--   p ->> 'id'      the record (ignored for settings)
+--   p ->> 'base'    the record's version the phone started from; null for a new one
+--   p ->> 'after'   an earlier change from the same phone to the same record, which
+--                   may have landed without the phone hearing back
+--   p ->> 'force'   true when the owner chose to keep their own copy over another one
+--   p -> 'data'     the record, with its lines for a challan or a sale
+-- Returns {status: 'ok', id, number, version} or {status: 'conflict'}. A record the
+-- rules refuse (too many animals sold, a name already used, ...) raises the same
+-- errors as a save made online.
+create or replace function public.apply_change(p jsonb)
+returns jsonb
+language plpgsql
+set search_path = public
+as $$
+declare
+  v_owner   uuid := auth.uid();
+  v_op      uuid := (p ->> 'op')::uuid;
+  v_entity  text := p ->> 'entity';
+  v_action  text := p ->> 'action';
+  v_id      uuid;
+  v_base    integer := (p ->> 'base')::integer;
+  v_after   uuid := (p ->> 'after')::uuid;
+  v_force   boolean := coalesce((p ->> 'force')::boolean, false);
+  v_data    jsonb := coalesce(p -> 'data', '{}'::jsonb);
+  v_table   text;
+  v_key     text := 'id';
+  v_version integer;
+  v_last    uuid;
+  v_exists  boolean;
+  v_number  integer;
+  v_saved   jsonb;
+begin
+  if v_owner is null then
+    raise exception 'Please sign in again.' using errcode = '42501';
+  end if;
+  if v_op is null or v_action not in ('save', 'delete') then
+    raise exception 'Unknown change.' using errcode = 'P0001';
+  end if;
+  v_table := case v_entity
+    when 'challan' then 'challans'
+    when 'sale' then 'sales'
+    when 'death' then 'deaths'
+    when 'payment' then 'payments'
+    when 'expense' then 'expenses'
+    when 'customer' then 'customers'
+    when 'supplier' then 'suppliers'
+    when 'settings' then 'settings'
+  end;
+  if v_table is null then
+    raise exception 'Unknown change.' using errcode = 'P0001';
+  end if;
+  if v_entity = 'settings' then
+    v_key := 'owner_id';
+    v_id := v_owner;
+  else
+    v_id := (p ->> 'id')::uuid;
+  end if;
+
+  -- The record as stored now, locked until this change is done. (EXECUTE leaves FOUND
+  -- alone, so whether it exists is read from its version, which is never null.)
+  execute format('select version, last_op from public.%I where %I = $1 for update', v_table, v_key)
+    into v_version, v_last using v_id;
+  v_exists := v_version is not null;
+
+  -- This very change was already applied: its reply was lost on the way back.
+  if v_exists and v_last = v_op then
+    if v_entity in ('challan', 'sale') then
+      execute format('select number from public.%I where id = $1', v_table) into v_number using v_id;
+    end if;
+    return jsonb_build_object('status', 'ok', 'id', v_id, 'number', v_number, 'version', v_version);
+  end if;
+  if v_action = 'delete' and not v_exists then
+    return jsonb_build_object('status', 'ok', 'id', v_id);
+  end if;
+
+  -- Changed elsewhere since this phone last saw it, or deleted there: the owner decides.
+  if not v_force then
+    if v_exists and v_version is distinct from v_base and (v_after is null or v_last is distinct from v_after) then
+      return jsonb_build_object('status', 'conflict');
+    end if;
+    if not v_exists and v_base is not null then
+      return jsonb_build_object('status', 'conflict');
+    end if;
+  end if;
+
+  if v_action = 'delete' then
+    execute format('delete from public.%I where %I = $1', v_table, v_key) using v_id;
+    return jsonb_build_object('status', 'ok', 'id', v_id);
+  end if;
+
+  case v_entity
+    when 'challan' then
+      v_saved := public.save_challan((v_data - 'lines') || jsonb_build_object('id', v_id), v_data -> 'lines');
+      v_number := (v_saved ->> 'number')::integer;
+    when 'sale' then
+      v_saved := public.save_sale((v_data - 'lines') || jsonb_build_object('id', v_id), v_data -> 'lines');
+      v_number := (v_saved ->> 'number')::integer;
+    when 'death' then
+      insert into public.deaths (id, died_on, challan_line_id, head, cause)
+      values (v_id, (v_data ->> 'died_on')::date, (v_data ->> 'challan_line_id')::uuid,
+              (v_data ->> 'head')::integer, nullif(btrim(v_data ->> 'cause'), ''))
+      on conflict (id) do update
+        set died_on = excluded.died_on, challan_line_id = excluded.challan_line_id,
+            head = excluded.head, cause = excluded.cause;
+    when 'payment' then
+      insert into public.payments (id, paid_on, kind, customer_id, supplier_id, account, amount, notes)
+      values (v_id, (v_data ->> 'paid_on')::date, v_data ->> 'kind',
+              nullif(v_data ->> 'customer_id', '')::uuid, nullif(v_data ->> 'supplier_id', '')::uuid,
+              nullif(v_data ->> 'account', ''), (v_data ->> 'amount')::numeric, nullif(btrim(v_data ->> 'notes'), ''))
+      on conflict (id) do update
+        set paid_on = excluded.paid_on, kind = excluded.kind, customer_id = excluded.customer_id,
+            supplier_id = excluded.supplier_id, account = excluded.account, amount = excluded.amount,
+            notes = excluded.notes;
+    when 'expense' then
+      insert into public.expenses (id, spent_on, category, amount, paid_from, challan_id, notes)
+      values (v_id, (v_data ->> 'spent_on')::date, btrim(v_data ->> 'category'), (v_data ->> 'amount')::numeric,
+              v_data ->> 'paid_from', nullif(v_data ->> 'challan_id', '')::uuid, nullif(btrim(v_data ->> 'notes'), ''))
+      on conflict (id) do update
+        set spent_on = excluded.spent_on, category = excluded.category, amount = excluded.amount,
+            paid_from = excluded.paid_from, challan_id = excluded.challan_id, notes = excluded.notes;
+    when 'customer', 'supplier' then
+      execute format(
+        'insert into public.%I (id, name, phone, notes, opening_balance) values ($1, $2, $3, $4, $5)
+         on conflict (id) do update set name = excluded.name, phone = excluded.phone, notes = excluded.notes,
+           opening_balance = excluded.opening_balance',
+        v_table)
+      using v_id, btrim(v_data ->> 'name'), nullif(btrim(v_data ->> 'phone'), ''), nullif(btrim(v_data ->> 'notes'), ''),
+            coalesce((v_data ->> 'opening_balance')::numeric, 0);
+    when 'settings' then
+      insert into public.settings (business_name, opening_cash, opening_bank, updated_at)
+      values (btrim(v_data ->> 'business_name'), coalesce((v_data ->> 'opening_cash')::numeric, 0),
+              coalesce((v_data ->> 'opening_bank')::numeric, 0), now())
+      on conflict (owner_id) do update
+        set business_name = excluded.business_name, opening_cash = excluded.opening_cash,
+            opening_bank = excluded.opening_bank, updated_at = now();
+  end case;
+
+  v_version := case when v_exists then v_version + 1 else 1 end;
+  execute format('update public.%I set version = $1, last_op = $2 where %I = $3', v_table, v_key)
+    using v_version, v_op, v_id;
+  return jsonb_build_object('status', 'ok', 'id', v_id, 'number', v_number, 'version', v_version);
+end $$;
+
+revoke all on function public.apply_change(jsonb) from public, anon;
+grant execute on function public.apply_change(jsonb) to authenticated;

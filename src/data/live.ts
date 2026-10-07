@@ -1,16 +1,21 @@
 /**
- * The real backend: a Supabase project set up with supabase/setup.sql.
- * Reads fetch every table whole and the app works out its figures from them
- * (src/lib/books.ts). Challans and sales save through database functions so
- * a record and its lines are saved together or not at all.
+ * The real backend: a Supabase project set up with supabase/setup.sql, worked
+ * offline first (synced.ts). Reads fetch every table whole and the app works
+ * out its figures from them (src/lib/books.ts). Every change goes through one
+ * database function, apply_change, which saves a record and its lines
+ * together or not at all, once only, and hands back conflicts.
  */
 import { createClient } from '@supabase/supabase-js'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { t } from '../lib/i18n'
-import type { PartyKind } from '../lib/types'
-import { clean, tidyPayment } from './api'
-import type { Backend, User } from './api'
+import type { Book } from '../lib/types'
+import type { User } from './api'
+import type { Change } from './changes'
+import { phoneLocal } from './local'
 import { TABLES, toBook } from './rows'
+import { wire } from './wire'
+import { SignedOut, Unreachable, createSyncedBackend } from './synced'
+import type { Auth, Remote } from './synced'
 
 const url = import.meta.env.VITE_SUPABASE_URL as string | undefined
 const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
@@ -22,7 +27,17 @@ let client: SupabaseClient | null = null
 function db(): SupabaseClient {
   if (!client) {
     if (!url || !anonKey) throw new Error(t('The app is not connected to its database yet. See README.md.'))
-    client = createClient(url, anonKey, { auth: { persistSession: true, autoRefreshToken: true } })
+    client = createClient(url, anonKey, {
+      auth: { persistSession: true, autoRefreshToken: true },
+      // A mandi's connection can hang rather than fail: give up after 25 seconds and try later.
+      global: {
+        fetch: (input, init) =>
+          fetch(input, {
+            ...init,
+            signal: init?.signal ?? (typeof AbortSignal.timeout === 'function' ? AbortSignal.timeout(25_000) : undefined),
+          }),
+      },
+    })
   }
   return client
 }
@@ -73,18 +88,113 @@ async function all(table: string): Promise<Record<string, unknown>[]> {
   return rows
 }
 
-const partyTable = (kind: PartyKind) => (kind === 'customer' ? 'customers' : 'suppliers')
+/** No connection, a timeout, or the server not answering: try again later, nothing is wrong with the change. */
+function unreachable(error: { message?: string; name?: string; code?: string } | null): boolean {
+  const text = `${error?.name ?? ''} ${error?.message ?? ''}`
+  return /failed to fetch|network|load failed|fetch failed|timed? ?out|timeout|aborted|offline|ECONN|503|502|504/i.test(text)
+}
 
-export const liveBackend: Backend = {
-  demo: false,
+function signedOut(error: { code?: string; message?: string } | null): boolean {
+  return ['42501', 'PGRST301', 'PGRST303'].includes(error?.code ?? '') || /jwt expired|invalid jwt|not authenticated/i.test(error?.message ?? '')
+}
 
+/** What a refusal means for this change, in words staff can act on. */
+function refusal(change: Change, error: DbError): Error {
+  const known: Record<string, string> = {}
+  if (change.entity === 'challan') {
+    if (change.action === 'delete') known['23503'] = t('This challan has sales, deaths or expenses. Delete those first.')
+    else {
+      known['23503'] = t('An animal you took off this challan already has sales or deaths. Put it back first.')
+      known['23505'] = t('Each kind of animal can be on one line only.')
+    }
+  }
+  if (change.entity === 'customer' || change.entity === 'supplier') {
+    const customer = change.entity === 'customer'
+    if (change.action === 'delete') {
+      known['23503'] = customer
+        ? t("This customer has records, so they can't be deleted.")
+        : t("This supplier has records, so they can't be deleted.")
+    } else {
+      known['23505'] = customer ? t('There is already a customer with that name.') : t('There is already a supplier with that name.')
+    }
+  }
+  return friendly(error, known)
+}
+
+export const liveRemote: Remote = {
+  async pull(): Promise<Book> {
+    try {
+      const [settings, ...tables] = await Promise.all([
+        db().from('settings').select('*').maybeSingle(),
+        ...TABLES.map((t) => all(t)),
+      ])
+      if (settings.error) throw settings.error
+      const rows = Object.fromEntries(TABLES.map((t, i) => [t, tables[i]])) as Parameters<typeof toBook>[1]
+      return toBook(settings.data as Record<string, unknown> | null, rows)
+    } catch (e) {
+      const error = e as { code?: string; message?: string; name?: string }
+      if (unreachable(error)) throw new Unreachable(error.message)
+      if (signedOut(error)) throw new SignedOut(t('You have been signed out. Please sign in again.'))
+      throw e instanceof Error ? e : friendly(error)
+    }
+  },
+
+  async push(q) {
+    let data: unknown
+    let error: (DbError & { name?: string }) | null
+    try {
+      ;({ data, error } = await db().rpc('apply_change', { p: wire(q) }))
+    } catch (e) {
+      throw new Unreachable((e as Error).message)
+    }
+    if (error) {
+      if (unreachable(error)) throw new Unreachable(error.message ?? '')
+      if (signedOut(error)) throw new SignedOut(t('You have been signed out. Please sign in again.'))
+      throw refusal(q, error)
+    }
+    const result = data as { status: 'ok' | 'conflict'; number?: number | null }
+    return result.status === 'conflict' ? { status: 'conflict' } : { status: 'ok', number: result.number ?? null }
+  },
+}
+
+/** Who last signed in on this phone, so the app still opens on its copy when the sign-in can't be renewed offline. */
+const LAST_USER = 'mandi-app:last-user'
+const remember = (email: string | undefined) => {
+  try {
+    if (email) localStorage.setItem(LAST_USER, email)
+  } catch {
+    // Private window: the phone's copy simply needs a connection to open.
+  }
+}
+const remembered = (): User | null => {
+  try {
+    const email = localStorage.getItem(LAST_USER)
+    return email ? userOf(email) : null
+  } catch {
+    return null
+  }
+}
+
+export const liveAuth: Auth = {
   async session() {
-    const { data } = await db().auth.getSession()
-    return data.session ? userOf(data.session.user.email) : null
+    try {
+      const { data, error } = await db().auth.getSession()
+      if (data.session) {
+        remember(data.session.user.email)
+        return userOf(data.session.user.email)
+      }
+      // Signed in, but the sign-in can't be renewed without a connection: open the phone's copy.
+      if (error && unreachable(error)) return remembered()
+      return null
+    } catch (e) {
+      if (unreachable(e as Error)) return remembered()
+      throw e
+    }
   },
 
   onAuthChange(listener) {
     const { data } = db().auth.onAuthStateChange((_event, session) => {
+      if (session) remember(session.user.email)
       listener(session ? userOf(session.user.email) : null)
     })
     return () => data.subscription.unsubscribe()
@@ -97,143 +207,19 @@ export const liveBackend: Backend = {
         ? new Error(t('Wrong email or password.'))
         : friendly({ code: error.code, message: error.message })
     }
+    remember(data.user.email)
     return userOf(data.user.email)
   },
 
   async signOut() {
+    try {
+      localStorage.removeItem(LAST_USER)
+    } catch {
+      // Nothing kept to forget.
+    }
     await db().auth.signOut()
   },
-
-  async load() {
-    const [settings, ...tables] = await Promise.all([
-      db().from('settings').select('*').maybeSingle(),
-      ...TABLES.map((t) => all(t)),
-    ])
-    if (settings.error) throw friendly(settings.error)
-    const rows = Object.fromEntries(TABLES.map((t, i) => [t, tables[i]])) as Parameters<typeof toBook>[1]
-    return toBook(settings.data as Record<string, unknown> | null, rows)
-  },
-
-  async saveChallan(input) {
-    const { data, error } = await db().rpc('save_challan', {
-      p_challan: {
-        id: input.id,
-        bought_on: input.bought_on,
-        supplier_id: input.supplier_id,
-        paid_now: input.paid_now,
-        paid_from: input.paid_from,
-        notes: clean(input.notes),
-      },
-      p_lines: input.lines.map((l) => ({ id: l.id, animal: l.animal.trim(), head: l.head, cost: l.cost })),
-    })
-    if (error) {
-      throw friendly(error, {
-        '23503': t('An animal you took off this challan already has sales or deaths. Put it back first.'),
-        '23505': t('Each kind of animal can be on one line only.'),
-      })
-    }
-    return data as { id: string; number: number }
-  },
-
-  async deleteChallan(id) {
-    const { error } = await db().from('challans').delete().eq('id', id)
-    if (error) throw friendly(error, { '23503': t('This challan has sales, deaths or expenses. Delete those first.') })
-  },
-
-  async saveSale(input) {
-    const { data, error } = await db().rpc('save_sale', {
-      p_sale: {
-        id: input.id,
-        sold_on: input.sold_on,
-        customer_id: input.customer_id,
-        received_now: input.received_now,
-        received_in: input.received_in,
-        notes: clean(input.notes),
-      },
-      p_lines: input.lines.map((l) => ({
-        id: l.id,
-        challan_line_id: l.challan_line_id,
-        head: l.head,
-        amount: l.amount,
-        damaged: l.damaged,
-      })),
-    })
-    if (error) throw friendly(error)
-    return data as { id: string; number: number }
-  },
-
-  async deleteSale(id) {
-    const { error } = await db().from('sales').delete().eq('id', id)
-    if (error) throw friendly(error)
-  },
-
-  async saveDeath(input) {
-    const { error } = await db()
-      .from('deaths')
-      .upsert({ ...input, cause: clean(input.cause) })
-    if (error) throw friendly(error)
-  },
-
-  async deleteDeath(id) {
-    const { error } = await db().from('deaths').delete().eq('id', id)
-    if (error) throw friendly(error)
-  },
-
-  async savePayment(input) {
-    const { error } = await db().from('payments').upsert(tidyPayment(input))
-    if (error) throw friendly(error)
-  },
-
-  async deletePayment(id) {
-    const { error } = await db().from('payments').delete().eq('id', id)
-    if (error) throw friendly(error)
-  },
-
-  async saveExpense(input) {
-    const { error } = await db()
-      .from('expenses')
-      .upsert({ ...input, category: input.category.trim(), notes: clean(input.notes) })
-    if (error) throw friendly(error)
-  },
-
-  async deleteExpense(id) {
-    const { error } = await db().from('expenses').delete().eq('id', id)
-    if (error) throw friendly(error)
-  },
-
-  async saveParty(kind, input) {
-    const { error } = await db()
-      .from(partyTable(kind))
-      .upsert({ ...input, name: input.name.trim(), phone: clean(input.phone), notes: clean(input.notes) })
-    if (error) {
-      throw friendly(error, {
-        '23505':
-          kind === 'customer'
-            ? t('There is already a customer with that name.')
-            : t('There is already a supplier with that name.'),
-      })
-    }
-  },
-
-  async deleteParty(kind, id) {
-    const { error } = await db().from(partyTable(kind)).delete().eq('id', id)
-    if (error) {
-      throw friendly(error, {
-        '23503':
-          kind === 'customer'
-            ? t("This customer has records, so they can't be deleted.")
-            : t("This supplier has records, so they can't be deleted."),
-      })
-    }
-  },
-
-  async saveSettings(settings) {
-    const { data } = await db().auth.getSession()
-    const owner = data.session?.user.id
-    if (!owner) throw new Error(t('You have been signed out. Please sign in again.'))
-    const { error } = await db()
-      .from('settings')
-      .upsert({ owner_id: owner, ...settings, business_name: settings.business_name.trim(), updated_at: new Date().toISOString() })
-    if (error) throw friendly(error)
-  },
 }
+
+/** The live app: the books on the phone, kept in step with Supabase. */
+export const liveBackend = createSyncedBackend({ remote: liveRemote, auth: liveAuth, local: phoneLocal() })
