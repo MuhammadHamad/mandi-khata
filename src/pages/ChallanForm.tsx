@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Plus, X } from 'lucide-react'
+import { Combobox } from '../components/Combobox'
 import { AccountPills, PartyPicker } from '../components/pickers'
 import { emptyQty, qtyFrom, qtyValues, setEach, setHead, setTotal } from '../components/qty'
 import type { Qty } from '../components/qty'
@@ -105,11 +106,6 @@ function Editor({ view, challan, supplierId }: { view: Derived; challan?: Challa
 
       <section>
         <h2 className="mb-2 px-1 text-[15px] font-semibold">{t('Animals')}</h2>
-        <datalist id="animal-kinds">
-          {kinds.map((k) => (
-            <option key={k} value={k} />
-          ))}
-        </datalist>
         <Card className="divide-y divide-line-soft">
           {lines.map((l, i) => {
             // Animals already sold or dead from a saved line: it must stay, at least that big.
@@ -120,12 +116,11 @@ function Editor({ view, challan, supplierId }: { view: Derived; challan?: Challa
                 <div className="flex items-end gap-2">
                   <div className="min-w-0 flex-1">
                     <Field label={t('Kind of animal')}>
-                      <input
-                        className="field"
-                        list="animal-kinds"
-                        placeholder={t('Goat, sheep, cow…')}
+                      <Combobox
                         value={l.animal}
-                        onChange={(e) => change(i, { ...l, animal: e.target.value })}
+                        onChange={(animal) => change(i, { ...l, animal })}
+                        options={kinds}
+                        placeholder={t('Goat, sheep, cow…')}
                       />
                     </Field>
                   </div>

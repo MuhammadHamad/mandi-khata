@@ -21,6 +21,7 @@ import {
   whyCantDeleteParty,
 } from '../lib/rules'
 import type { Account, Death, Expense, Party, PartyInput, PartyKind, Payment, PaymentKind } from '../lib/types'
+import { Combobox } from './Combobox'
 import { AccountPills, LinePicker, PartyPicker } from './pickers'
 import { ConfirmDialog, CountInput, ErrorNote, Field, Loading, Modal, MoneyInput } from './ui'
 
@@ -462,19 +463,13 @@ function ExpenseBody({
   return (
     <form onSubmit={submit} className="space-y-4">
       <Field label={t('What for')}>
-        <input
-          className="field"
-          list="expense-categories"
+        <Combobox
           value={category}
-          onChange={(e) => setCategory(e.target.value)}
+          onChange={setCategory}
+          options={expenseCategories(view.book.expenses)}
           placeholder={t('Transport, fodder, rent…')}
           autoFocus={!expense}
         />
-        <datalist id="expense-categories">
-          {expenseCategories(view.book.expenses).map((c) => (
-            <option key={c} value={c} />
-          ))}
-        </datalist>
       </Field>
       <Field label={t('Amount')}>
         <MoneyInput value={amount} onChange={setAmount} />

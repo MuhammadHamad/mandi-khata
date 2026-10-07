@@ -7,10 +7,12 @@ import {
   Banknote,
   ChartColumn,
   HeartCrack,
+  Landmark,
   PawPrint,
   Receipt,
   Tag,
   Truck,
+  Wallet,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { DeathForm, ExpenseForm, PaymentForm } from '../components/forms'
@@ -58,15 +60,15 @@ export default function Home() {
         {t('Today')} · {shortDate(today)}
       </div>
 
-      {/* The money in hand: the first thing an owner checks. */}
+      {/* The same card as Cash & bank: all the money first, then where it sits. */}
       <MoneyCard
         to="/money"
-        label={t('Cash in hand')}
-        icon={Banknote}
-        value={money.cash}
+        label={t('Combined balance')}
+        icon={Wallet}
+        value={money.cash + money.bank}
         parts={[
-          { label: t('Bank'), value: money.bank },
-          { label: t('Together'), value: money.cash + money.bank },
+          { label: t('Cash in hand'), value: money.cash, icon: Banknote },
+          { label: t('Cash in bank'), value: money.bank, icon: Landmark },
         ]}
       />
 

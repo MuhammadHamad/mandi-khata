@@ -262,7 +262,6 @@ export const UR: Record<string, string> = {
 
   // ------------------------------------------------------- cash and bank --
   'Payment or transfer': 'Paisay ka lein dein',
-  Together: 'Dono mila kar',
   'Which book': 'Kaun sa hisaab',
   'Combined balance': 'Kul paisay',
   'Cash in bank': 'Bank mein paisay',
@@ -284,6 +283,8 @@ export const UR: Record<string, string> = {
   To: 'Kab tak',
   Earlier: 'Pichla',
   Later: 'Agla',
+  'Show the list': 'List dikhayein',
+  'Close the list': 'List band karein',
   'Which one': 'Kaun sa',
   'Balance {amount}': 'Baqaya {amount}',
   'Nothing in this book yet': 'Is hisaab mein abhi kuch nahi',
