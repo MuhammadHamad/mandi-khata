@@ -305,6 +305,52 @@ export function Pills<T extends string>({
   )
 }
 
+/**
+ * Pills grown into cards, for a choice that has a figure of its own: each card shows its
+ * amount, and the chosen one is raised and outlined while the other sits flat.
+ */
+export function TabCards<T extends string>({
+  options,
+  value,
+  onChange,
+  label,
+  className = '',
+}: {
+  options: readonly { value: T; title: string; icon: LucideIcon; tone: Tone; figure: string; caption: string }[]
+  value: T
+  onChange: (value: T) => void
+  label: string
+  className?: string
+}) {
+  return (
+    <div role="group" aria-label={label} className={`grid grid-cols-2 gap-3 ${className}`}>
+      {options.map((o) => {
+        const chosen = o.value === value
+        return (
+          <button
+            key={o.value}
+            type="button"
+            aria-pressed={chosen}
+            onClick={() => onChange(o.value)}
+            className={`flex min-w-0 flex-col rounded-card p-4 text-left transition active:scale-[0.99] ${
+              chosen ? 'bg-paper shadow-card ring-2 ring-brand' : 'bg-sunk hover:bg-line-soft'
+            }`}
+          >
+            <span className="flex items-center gap-2.5">
+              <IconBadge icon={o.icon} tone={o.tone} size="sm" />
+              <span className={`min-w-0 truncate font-semibold ${chosen ? 'text-ink' : 'text-ink-soft'}`}>{o.title}</span>
+            </span>
+            <span className="tnum mt-3 block text-xl leading-tight font-semibold tracking-tight break-words sm:text-2xl">
+              {o.figure}
+            </span>
+            <span className="mt-1 block text-[13px] leading-snug text-ink-soft">{o.caption}</span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 // --------------------------------------------------------------- lists --
 
 /** A titled card of rows. */

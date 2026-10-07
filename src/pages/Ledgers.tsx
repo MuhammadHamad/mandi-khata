@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { BookUser, Plus, Search } from 'lucide-react'
+import { ArrowDownLeft, ArrowUpRight, BookUser, Plus, Search } from 'lucide-react'
 import { PartyForm } from '../components/forms'
-import { Avatar, Empty, Gate, PageHeader, Pills, Row, Section } from '../components/ui'
+import { Avatar, Empty, Gate, PageHeader, Row, Section, TabCards } from '../components/ui'
 import type { Tone } from '../components/ui'
 import { useBooks } from '../data/queries'
 import { rs } from '../lib/format'
@@ -28,11 +28,6 @@ export default function Ledgers() {
     <div className="space-y-4">
       <PageHeader
         title={t('Ledgers')}
-        subtitle={
-          customers
-            ? t('Customers owe you {amount}', { amount: rs(view.balances.receivable) })
-            : t('You owe suppliers {amount}', { amount: rs(view.balances.payable) })
-        }
         actions={
           <button type="button" className="btn-primary" onClick={() => setAdding(true)}>
             <Plus className="h-4 w-4" aria-hidden />
@@ -40,14 +35,28 @@ export default function Ledgers() {
           </button>
         }
       />
-      <Pills
+      <TabCards
         label={t('Customers or suppliers')}
         value={kind}
         onChange={(k) => setParams(k === 'supplier' ? { tab: 'suppliers' } : {}, { replace: true })}
-        className="sm:max-w-md"
+        className="sm:max-w-xl"
         options={[
-          { value: 'customer', label: t('Customers') },
-          { value: 'supplier', label: t('Suppliers') },
+          {
+            value: 'customer',
+            title: t('Customers'),
+            icon: ArrowDownLeft,
+            tone: 'good',
+            figure: rs(view.balances.receivable),
+            caption: t('Customers owe you'),
+          },
+          {
+            value: 'supplier',
+            title: t('Suppliers'),
+            icon: ArrowUpRight,
+            tone: 'owed',
+            figure: rs(view.balances.payable),
+            caption: t('You owe suppliers'),
+          },
         ]}
       />
       <label className="relative block sm:max-w-md">

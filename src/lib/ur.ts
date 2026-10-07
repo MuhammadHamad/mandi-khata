@@ -213,8 +213,6 @@ export const UR: Record<string, string> = {
   'Delete this sale': 'Ye sale mitayein',
 
   // ------------------------------------------------------------- ledgers --
-  'Customers owe you {amount}': 'Gahakon se {amount} lene hain',
-  'You owe suppliers {amount}': 'Beopariyon ko {amount} dene hain',
   'New customer': 'Naya gahak',
   'New supplier': 'Naya beopari',
   'Customers or suppliers': 'Gahak ya beopari',
