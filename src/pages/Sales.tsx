@@ -7,17 +7,17 @@ import { saleAnimals } from '../lib/books'
 import { accountName, count, dayLabel, rs, runsOf, todayISO } from '../lib/format'
 import { t } from '../lib/i18n'
 
-type Show = 'all' | 'credit' | 'damaged'
+type Show = 'paid' | 'credit' | 'damaged'
 
 export default function Sales() {
   const { view, error } = useBooks()
-  const [show, setShow] = useState<Show>('all')
+  const [show, setShow] = useState<Show>('paid')
   if (!view) return <Gate error={error} ready={false} />
 
   const today = todayISO()
   const month = today.slice(0, 7)
   const thisMonth = view.sales.filter((s) => s.sale.sold_on.startsWith(month))
-  const list = view.sales.filter((s) => (show === 'credit' ? s.credit > 0.5 : show === 'damaged' ? s.damaged : true))
+  const list = view.sales.filter((s) => (show === 'paid' ? s.credit <= 0.5 : show === 'credit' ? s.credit > 0.5 : s.damaged))
 
   return (
     <div className="space-y-4">
@@ -44,7 +44,7 @@ export default function Sales() {
         onChange={setShow}
         className="sm:max-w-md"
         options={[
-          { value: 'all', label: t('All') },
+          { value: 'paid', label: t('Paid') },
           { value: 'credit', label: t('On credit') },
           { value: 'damaged', label: t('Damaged') },
         ]}

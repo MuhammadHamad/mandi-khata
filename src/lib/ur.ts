@@ -105,12 +105,7 @@ export const UR: Record<string, string> = {
   'Cost {amount}': 'Laagat {amount}',
   'Sales {amount}': 'Sales {amount}',
   'Nothing yet this month': 'Is mahine abhi kuch nahi',
-  'All challans': 'Sab challan',
   'No animals in stock': 'Koi janwar baqi nahi',
-  'Record a challan when you buy a lot of animals.': 'Jab janwar khareedein to challan likhein.',
-  '{animals} left': '{animals} baqi',
-  'Latest sales': 'Haal ki sales',
-  'All sales': 'Sab sales',
   'No sales yet': 'Abhi koi sale nahi',
 
   // ------------------------------------------------------------ challans --
