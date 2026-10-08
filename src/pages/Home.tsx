@@ -1,27 +1,16 @@
 import { useMemo } from 'react'
 import type { ReactNode } from 'react'
-import { Link } from 'react-router-dom'
-import {
-  ArrowDownLeft,
-  ArrowUpRight,
-  ChartColumn,
-  ChevronRight,
-  Hourglass,
-  PawPrint,
-  Tag,
-  TrendingDown,
-  TrendingUp,
-} from 'lucide-react'
-import { Avatar, Badge, Gate, IconBadge } from '../components/ui'
+import { ArrowDownLeft, ArrowUpRight, ChartColumn, Hourglass, PawPrint, TrendingDown, TrendingUp } from 'lucide-react'
+import { Avatar, Badge, Gate, IconBadge, StockBar } from '../components/ui'
 import { useBooks } from '../data/queries'
 import { monthlyReport } from '../lib/books'
-import { addDays, count, dayLabel, daysBetween, monthLabel, rs, shortDate, todayISO } from '../lib/format'
+import { count, daysBetween, monthLabel, rs, shortDate, todayISO } from '../lib/format'
 import { t } from '../lib/i18n'
 
 /**
- * What the owner wants on opening the app, in four places: today, in the green card with
- * the week behind it; the month; the khata both ways, with who owes the most; and the
- * animals still to sell, with the lot that has waited longest.
+ * What the owner wants on opening the app, in three cards to read, not to tap: the month;
+ * the khata both ways, with who owes the most; and the animals still to sell, with the lot
+ * that has waited longest. Every section has its own tab for the details.
  */
 export default function Home() {
   const { view, error } = useBooks()
@@ -32,20 +21,7 @@ export default function Home() {
   )
   if (!view) return <Gate error={error} ready={false} />
 
-  const { balances, challans, sales, book } = view
-
-  // Today, and the six days before it.
-  const byDay = new Map<string, number>()
-  for (const s of sales) byDay.set(s.sale.sold_on, (byDay.get(s.sale.sold_on) ?? 0) + s.total)
-  const week = Array.from({ length: 7 }, (_, i) => {
-    const day = addDays(today, i - 6)
-    return { day, total: byDay.get(day) ?? 0 }
-  })
-  const todays = sales.filter((s) => s.sale.sold_on === today)
-  const todayHead = todays.reduce((sum, s) => sum + s.head, 0)
-  const todayCredit = todays.reduce((sum, s) => sum + s.credit, 0)
-  // Sales come newest first.
-  const lastSale = sales[0]?.sale.sold_on
+  const { balances, challans, book } = view
 
   const profit = month?.profit ?? 0
   const loss = profit < -0.5
@@ -62,6 +38,10 @@ export default function Home() {
   const inStock = challans.filter((c) => c.left > 0)
   const stockHead = inStock.reduce((sum, c) => sum + c.left, 0)
   const stockCost = inStock.reduce((sum, c) => sum + c.stockCost, 0)
+  // Everything those lots started with, and what became of it.
+  const lotHead = inStock.reduce((sum, c) => sum + c.head, 0)
+  const lotSold = inStock.reduce((sum, c) => sum + c.sold, 0)
+  const lotDied = inStock.reduce((sum, c) => sum + c.died, 0)
   const kinds = new Map<string, number>()
   for (const c of inStock) {
     for (const l of c.lines) if (l.left > 0) kinds.set(l.line.animal, (kinds.get(l.line.animal) ?? 0) + l.left)
@@ -73,177 +53,135 @@ export default function Home() {
   const waited = oldest ? daysBetween(oldest.challan.bought_on, today) : 0
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
-      {/* Today: the one figure that changes every day, with the week behind it. */}
-      <Link
-        to="/sales"
-        className="block rounded-[1.5rem] bg-hero p-5 text-white shadow-lg shadow-hero/25 transition active:scale-[0.99]"
-      >
-        <div className="flex items-center justify-between gap-3">
-          <span className="flex items-center gap-2 text-sm font-medium text-white/80">
-            <Tag className="h-4 w-4" aria-hidden />
-            {t('Sales today')}
-          </span>
-          <span className="text-xs font-medium text-white/65">{shortDate(today)}</span>
-        </div>
-        <div className="tnum mt-2 text-[2.5rem] leading-none font-semibold tracking-tight">
-          {rs(todays.reduce((sum, s) => sum + s.total, 0))}
-        </div>
-        <div className="mt-2 text-sm text-white/75">
-          {todays.length
-            ? `${count(todayHead, t('animal'), t('animals'))} · ${
-                todayCredit > 0.5 ? t('{amount} on credit', { amount: rs(todayCredit) }) : t('Paid')
-              }`
-            : lastSale
-              ? t('Last sale {day}', { day: dayLabel(lastSale, today) })
-              : t('No sales yet')}
-        </div>
-        <WeekBars week={week} today={today} />
-        <div className="mt-3 flex items-center justify-between gap-3 border-t border-white/15 pt-3 text-xs text-white/70">
-          <span>{t('Last 7 days')}</span>
-          <span className="tnum font-semibold text-white">{rs(week.reduce((sum, d) => sum + d.total, 0))}</span>
-        </div>
-      </Link>
+    <div className="space-y-4">
+      <div className="px-1 text-sm text-ink-soft">
+        {t('Today')} · {shortDate(today)}
+      </div>
 
-      {/* The month: what is left after everything, then what came in and what went out. */}
-      <div className="card flex flex-col overflow-hidden">
-        <Link to="/reports" className="block p-4 transition hover:bg-sunk/40 active:bg-sunk/70 sm:p-5">
-          <div className="flex items-center justify-between gap-3">
+      {/* On a big screen the month and the stock sit side by side, with the khata across under them. */}
+      <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
+        {/* The month: what is left after everything, then what came in and what went out. */}
+        <div className="card flex flex-col overflow-hidden">
+          <div className="p-4 sm:p-5">
             <span className="flex min-w-0 items-center gap-2.5">
               <IconBadge icon={ChartColumn} tone="bank" size="sm" />
               <span className="truncate text-sm font-medium text-ink-soft">{monthLabel(today.slice(0, 7))}</span>
             </span>
-            <ChevronRight className="h-4 w-4 shrink-0 text-ink-faint" aria-hidden />
+            <div className="tnum mt-3 text-3xl leading-tight font-semibold tracking-tight">{rs(Math.abs(profit))}</div>
+            {month ? (
+              <div className={`mt-1 flex items-center gap-1 text-sm font-semibold ${loss ? 'text-bad' : 'text-good'}`}>
+                {loss ? <TrendingDown className="h-4 w-4" aria-hidden /> : <TrendingUp className="h-4 w-4" aria-hidden />}
+                {loss ? t('Loss this month') : t('Profit this month')}
+              </div>
+            ) : (
+              <div className="mt-1 text-sm text-ink-soft">{t('Nothing yet this month')}</div>
+            )}
           </div>
-          <div className="tnum mt-3 text-3xl leading-tight font-semibold tracking-tight">{rs(Math.abs(profit))}</div>
-          {month ? (
-            <div className={`mt-1 flex items-center gap-1 text-sm font-semibold ${loss ? 'text-bad' : 'text-good'}`}>
-              {loss ? <TrendingDown className="h-4 w-4" aria-hidden /> : <TrendingUp className="h-4 w-4" aria-hidden />}
-              {loss ? t('Loss this month') : t('Profit this month')}
-            </div>
-          ) : (
-            <div className="mt-1 text-sm text-ink-soft">{t('Nothing yet this month')}</div>
-          )}
-        </Link>
-        <div className="mt-auto grid grid-cols-2 divide-x divide-line-soft border-t border-line-soft">
-          <Part
-            to="/sales"
-            label={t('Sales')}
-            value={rs(month?.sales ?? 0)}
-            detail={count(month?.headSold ?? 0, t('animal'), t('animals'))}
-          />
-          <Part
-            to="/expenses"
-            label={t('Expenses')}
-            value={rs(month?.expenses ?? 0)}
-            detail={month?.byCategory[0] ? t('Most on {category}', { category: month.byCategory[0].category }) : t('None')}
-          />
+          <div className="mt-auto grid grid-cols-2 divide-x divide-line-soft border-t border-line-soft">
+            <Part
+              label={t('Sales')}
+              value={rs(month?.sales ?? 0)}
+              detail={count(month?.headSold ?? 0, t('animal'), t('animals'))}
+            />
+            <Part
+              label={t('Expenses')}
+              value={rs(month?.expenses ?? 0)}
+              detail={
+                month?.byCategory[0] ? t('Most on {category}', { category: month.byCategory[0].category }) : t('None')
+              }
+            />
+          </div>
         </div>
-      </div>
 
-      {/* The khata both ways, how they weigh against each other, and the one to chase first. */}
-      <div className="card flex flex-col overflow-hidden">
-        <div className="grid grid-cols-2 divide-x divide-line-soft">
-          <Side
-            to="/ledgers"
-            icon={<IconBadge icon={ArrowDownLeft} tone="good" size="sm" />}
-            label={t('Customers owe you')}
-            value={rs(balances.receivable)}
-            detail={count(owing, t('customer'), t('customers'))}
-          />
-          <Side
-            to="/ledgers?tab=suppliers"
-            icon={<IconBadge icon={ArrowUpRight} tone="owed" size="sm" />}
-            label={t('You owe suppliers')}
-            value={rs(balances.payable)}
-            detail={count(owed, t('supplier'), t('suppliers'))}
-          />
-        </div>
-        <div className="px-4 pb-4 sm:px-5">
-          <Weigh lend={balances.receivable} owe={balances.payable} />
-          <div className="mt-2 text-xs text-ink-soft">
-            {Math.abs(net) < 0.5
-              ? t('All square')
-              : net > 0
-                ? t('Overall, {amount} is owed to you', { amount: rs(net) })
-                : t('Overall, you owe {amount}', { amount: rs(-net) })}
+        {/* The khata both ways, how they weigh against each other, and the one to chase first. */}
+        <div className="card flex flex-col overflow-hidden sm:order-last sm:col-span-2">
+          <div className="grid grid-cols-2 divide-x divide-line-soft">
+            <Side
+              icon={<IconBadge icon={ArrowDownLeft} tone="good" size="sm" />}
+              label={t('Customers owe you')}
+              value={rs(balances.receivable)}
+              detail={count(owing, t('customer'), t('customers'))}
+            />
+            <Side
+              icon={<IconBadge icon={ArrowUpRight} tone="owed" size="sm" />}
+              label={t('You owe suppliers')}
+              value={rs(balances.payable)}
+              detail={count(owed, t('supplier'), t('suppliers'))}
+            />
           </div>
-        </div>
-        {topCustomer ? (
-          <Footer
-            to={`/customers/${topCustomer.id}`}
-            leading={<Avatar name={topCustomer.name} />}
-            label={t('Owes you the most')}
-            title={topCustomer.name}
-            right={rs(topOwes)}
-          />
-        ) : null}
-      </div>
-
-      {/* The animals still to sell, by kind, and the lot that has waited longest: it eats fodder every day. */}
-      <div className="card flex flex-col overflow-hidden">
-        <Link to="/challans" className="block p-4 transition hover:bg-sunk/40 active:bg-sunk/70 sm:p-5">
-          <span className="flex items-center gap-2.5">
-            <IconBadge icon={PawPrint} tone="brand" size="sm" />
-            <span className="text-sm font-medium text-ink-soft">{t('Animals in stock')}</span>
-          </span>
-          <div className="mt-3 flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
-            <span className="tnum text-3xl leading-tight font-semibold tracking-tight">{stockHead}</span>
-            <span className="text-sm text-ink-soft">
-              {stockHead ? t('Cost {amount}', { amount: rs(stockCost) }) : t('No animals in stock')}
-            </span>
-          </div>
-          {kinds.size ? (
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              {[...kinds]
-                .sort((a, b) => b[1] - a[1])
-                .map(([animal, head]) => (
-                  <Badge key={animal}>
-                    {head} {animal}
-                  </Badge>
-                ))}
+          <div className="px-4 pb-4 sm:px-5">
+            <Weigh lend={balances.receivable} owe={balances.payable} />
+            <div className="mt-2 text-xs text-ink-soft">
+              {Math.abs(net) < 0.5
+                ? t('All square')
+                : net > 0
+                  ? t('Overall, {amount} is owed to you', { amount: rs(net) })
+                  : t('Overall, you owe {amount}', { amount: rs(-net) })}
             </div>
+          </div>
+          {topCustomer ? (
+            <Footer
+              leading={<Avatar name={topCustomer.name} />}
+              label={t('Owes you the most')}
+              title={topCustomer.name}
+              right={rs(topOwes)}
+            />
           ) : null}
-        </Link>
-        {oldest ? (
-          <Footer
-            to={`/challans/${oldest.challan.id}`}
-            leading={<IconBadge icon={Hourglass} tone="owed" />}
-            label={t('Oldest stock')}
-            title={[t('Challan #{n}', { n: oldest.challan.number }), oldest.supplier?.name].filter(Boolean).join(' · ')}
-            right={waited > 0 ? count(waited, t('day'), t('days')) : t('Today')}
-            rightSub={t('{n} left', { n: oldest.left })}
-          />
-        ) : null}
-      </div>
-    </div>
-  )
-}
+        </div>
 
-/**
- * Sales on each of the last seven days as bars on the green card, today's in full white.
- * A day without sales keeps a small stub, so the week always reads as seven days.
- */
-function WeekBars({ week, today }: { week: { day: string; total: number }[]; today: string }) {
-  const most = Math.max(...week.map((d) => d.total))
-  return (
-    <div className="mt-5 grid grid-cols-7 gap-1.5" role="img" aria-label={t('Sales on each of the last 7 days')}>
-      {week.map(({ day, total }) => {
-        const isToday = day === today
-        return (
-          <div key={day} className="flex flex-col items-center gap-1.5" title={`${dayLabel(day, today)}: ${rs(total)}`}>
-            <div className="flex h-14 w-full items-end justify-center">
-              <div
-                className={`w-full max-w-6 rounded-t-md rounded-b-sm ${isToday ? 'bg-white' : total ? 'bg-white/40' : 'bg-white/15'}`}
-                style={{ height: total && most ? `${Math.max(8, (total / most) * 100)}%` : '3px' }}
-              />
-            </div>
-            <span className={`text-[11px] leading-none ${isToday ? 'font-semibold text-white' : 'text-white/60'}`}>
-              {isToday ? t('Today') : Number(day.slice(8, 10))}
+        {/* The animals still to sell, by kind, and the lot that has waited longest: it eats fodder every day. */}
+        <div className="card flex flex-col overflow-hidden">
+          <div className="p-4 sm:p-5">
+            <span className="flex items-center gap-2.5">
+              <IconBadge icon={PawPrint} tone="brand" size="sm" />
+              <span className="text-sm font-medium text-ink-soft">{t('Animals in stock')}</span>
             </span>
+            {/* What is left of the lots still selling, out of all they started with. */}
+            <div className="mt-3 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+              <span className="tnum text-3xl leading-tight font-semibold tracking-tight">{stockHead}</span>
+              <span className="text-sm text-ink-soft">
+                {stockHead ? t('of {n}', { n: lotHead }) : t('No animals in stock')}
+              </span>
+            </div>
+            {stockHead ? (
+              <>
+                <div className="mt-3">
+                  <StockBar head={lotHead} sold={lotSold} died={lotDied} />
+                </div>
+                <div className="mt-2 text-xs text-ink-soft">
+                  {[
+                    t('{n} sold', { n: lotSold }),
+                    lotDied ? t('{n} died', { n: lotDied }) : null,
+                    t('Cost {amount}', { amount: rs(stockCost) }),
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </div>
+              </>
+            ) : null}
+            {kinds.size ? (
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {[...kinds]
+                  .sort((a, b) => b[1] - a[1])
+                  .map(([animal, head]) => (
+                    <Badge key={animal}>
+                      {head} {animal}
+                    </Badge>
+                  ))}
+              </div>
+            ) : null}
           </div>
-        )
-      })}
+          {oldest ? (
+            <Footer
+              leading={<IconBadge icon={Hourglass} tone="owed" />}
+              label={t('Oldest stock')}
+              title={[t('Challan #{n}', { n: oldest.challan.number }), oldest.supplier?.name].filter(Boolean).join(' · ')}
+              right={waited > 0 ? count(waited, t('day'), t('days')) : t('Today')}
+              rightSub={t('{n} left', { n: oldest.left })}
+            />
+          ) : null}
+        </div>
+      </div>
     </div>
   )
 }
@@ -260,33 +198,21 @@ function Weigh({ lend, owe }: { lend: number; owe: number }) {
   )
 }
 
-/** One half of a card's bottom row: a figure that opens its own page. */
-function Part({ to, label, value, detail }: { to: string; label: string; value: string; detail: string }) {
+/** One half of a card's bottom row. */
+function Part({ label, value, detail }: { label: string; value: string; detail: string }) {
   return (
-    <Link to={to} className="block min-w-0 px-4 py-3 transition hover:bg-sunk/40 active:bg-sunk/70 sm:px-5">
+    <div className="min-w-0 px-4 py-3 sm:px-5">
       <div className="text-xs font-medium text-ink-soft">{label}</div>
       <div className="tnum mt-1 text-lg leading-tight font-semibold">{value}</div>
       <div className="mt-0.5 line-clamp-2 text-xs leading-snug text-ink-soft">{detail}</div>
-    </Link>
+    </div>
   )
 }
 
 /** One side of the khata: its picture and name, the amount, and how many people. */
-function Side({
-  to,
-  icon,
-  label,
-  value,
-  detail,
-}: {
-  to: string
-  icon: ReactNode
-  label: string
-  value: string
-  detail: string
-}) {
+function Side({ icon, label, value, detail }: { icon: ReactNode; label: string; value: string; detail: string }) {
   return (
-    <Link to={to} className="flex min-w-0 flex-col p-4 transition hover:bg-sunk/40 active:bg-sunk/70 sm:p-5">
+    <div className="flex min-w-0 flex-col p-4 sm:p-5">
       <div className="flex items-start gap-2.5">
         {icon}
         <span className="min-w-0 pt-0.5 text-[13px] leading-snug font-medium text-ink-soft">{label}</span>
@@ -296,20 +222,18 @@ function Side({
         <div className="tnum text-xl leading-tight font-semibold tracking-tight sm:text-2xl">{value}</div>
         <div className="mt-1 text-xs text-ink-soft">{detail}</div>
       </div>
-    </Link>
+    </div>
   )
 }
 
-/** The line at the foot of a card for the one record worth opening now. */
+/** The line at the foot of a card for the one record worth knowing about now. */
 function Footer({
-  to,
   leading,
   label,
   title,
   right,
   rightSub,
 }: {
-  to: string
   leading: ReactNode
   label: string
   title: string
@@ -317,10 +241,7 @@ function Footer({
   rightSub?: string
 }) {
   return (
-    <Link
-      to={to}
-      className="mt-auto flex items-center gap-3 border-t border-line-soft px-4 py-3 transition hover:bg-sunk/40 active:bg-sunk/70 sm:px-5"
-    >
+    <div className="mt-auto flex items-center gap-3 border-t border-line-soft px-4 py-3 sm:px-5">
       {leading}
       <span className="min-w-0 flex-1">
         <span className="block text-xs text-ink-soft">{label}</span>
@@ -330,7 +251,6 @@ function Footer({
         <span className="tnum block font-semibold">{right}</span>
         {rightSub ? <span className="block text-xs text-ink-soft">{rightSub}</span> : null}
       </span>
-      <ChevronRight className="h-4 w-4 shrink-0 text-ink-faint" aria-hidden />
-    </Link>
+    </div>
   )
 }
