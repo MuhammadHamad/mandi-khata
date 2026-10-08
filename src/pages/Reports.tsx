@@ -1,8 +1,8 @@
 import { useMemo } from 'react'
-import type { ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { ChartColumn, TrendingDown, TrendingUp } from 'lucide-react'
 import { PeriodPicker } from '../components/PeriodPicker'
+import { SummaryLine } from '../components/Summary'
 import { Badge, Card, Empty, Gate, PageHeader } from '../components/ui'
 import { useBooks } from '../data/queries'
 import { firstRecordDay, periodReport } from '../lib/books'
@@ -70,7 +70,7 @@ function Summary({ title, r }: { title: string; r: ReportRow }) {
         </Badge>
       </div>
       <dl className="mt-4 space-y-3 text-sm">
-        <Line
+        <SummaryLine
           label={t('Sales')}
           note={t('{animals} · {received} paid at sale, {credit} on credit', {
             animals: animals(r.headSold),
@@ -79,15 +79,15 @@ function Summary({ title, r }: { title: string; r: ReportRow }) {
           })}
           value={rs(r.sales)}
         />
-        <Line label={t('Cost of the animals sold')} value={`− ${rs(r.costOfSold)}`} />
+        <SummaryLine label={t('Cost of the animals sold')} value={`− ${rs(r.costOfSold)}`} />
         {r.headDied ? (
-          <Line
+          <SummaryLine
             label={t('Animals that died ({n})', { n: r.headDied })}
             note={t('What they cost')}
             value={`− ${rs(r.deathLoss)}`}
           />
         ) : null}
-        <Line
+        <SummaryLine
           label={t('Expenses')}
           note={r.byCategory.map((c) => `${c.category} ${rs(c.amount)}`).join(' · ') || undefined}
           value={`− ${rs(r.expenses)}`}
@@ -118,17 +118,5 @@ function Summary({ title, r }: { title: string; r: ReportRow }) {
         </div>
       ) : null}
     </Card>
-  )
-}
-
-function Line({ label, note, value }: { label: string; note?: string; value: ReactNode }) {
-  return (
-    <div className="flex items-baseline justify-between gap-3">
-      <div className="min-w-0">
-        <dt className="font-medium">{label}</dt>
-        {note ? <dd className="mt-0.5 text-xs leading-snug text-ink-soft">{note}</dd> : null}
-      </div>
-      <dd className="tnum shrink-0 font-semibold">{value}</dd>
-    </div>
   )
 }

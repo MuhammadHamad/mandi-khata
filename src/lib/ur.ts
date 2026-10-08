@@ -106,6 +106,13 @@ export const UR: Record<string, string> = {
   'Nothing yet this month': 'Is mahine abhi kuch nahi',
   'No animals in stock': 'Koi janwar baqi nahi',
   'No sales yet': 'Abhi koi sale nahi',
+  'Sales today': 'Aaj ki sale',
+  'Last sale {day}': 'Pichli sale {day}',
+  'Oldest stock': 'Sab se purana maal',
+  'Expenses this month': 'Is mahine ke kharchay',
+  'Most on {category}': 'Sab se zyada {category} par',
+  'Owes you the most': 'Sab se zyada lena hai',
+  'Nobody owes you': 'Kisi se kuch lena nahi',
 
   // ------------------------------------------------------------ challans --
   '{open} with animals in stock · {sold} sold out': '{open} challan mein janwar baqi · {sold} challan bik gaye',
@@ -128,6 +135,8 @@ export const UR: Record<string, string> = {
   sales: 'sales',
   expense: 'kharcha',
   expenses: 'kharchay',
+  day: 'din',
+  days: 'din',
   'Sold for': 'Sale',
   '{n} sold': '{n} bik gaye',
   'Final result': 'Akhri hisaab',
@@ -183,7 +192,13 @@ export const UR: Record<string, string> = {
   'Save challan': 'Challan save karein',
 
   // --------------------------------------------------------------- sales --
-  'This month: {amount} from {animals}': 'Is mahine: {animals} se {amount}',
+  'Total sales': 'Kul sale',
+  'Paid at sale': 'Sale par mila',
+  'Profit over cost': 'Laagat se munafa',
+  'Loss under cost': 'Laagat se nuqsan',
+  'Before expenses': 'Kharchon se pehle',
+  'Damaged animals ({n})': 'Zakhmi janwar ({n})',
+  'Sold this much below their cost': 'Laagat se itna kam bike',
   'Which sales': 'Kaun si sales',
   'No sales match': 'Aisi koi sale nahi',
   'Record one with New sale.': '"Nayi sale" se likhein.',
@@ -291,7 +306,10 @@ export const UR: Record<string, string> = {
   'Owner took money out': 'Malik ne paisay nikale',
 
   // ------------------------------------------------------------ expenses --
-  'This month: {amount}': 'Is mahine: {amount}',
+  'Total expenses': 'Kul kharchay',
+  'On challans': 'Challanon par',
+  'General expenses': 'Aam kharchay',
+  'Others ({n})': 'Baqi ({n})',
   'No expenses yet': 'Abhi koi kharcha nahi',
   'Transport, fodder, rent, wages: anything the business pays for.':
     'Gari ka kiraya, chara, kiraya, tankhwah: karobar ka har kharcha.',

@@ -126,16 +126,14 @@ export function MoneyCard({
   icon: Icon,
   value,
   parts,
-  to,
 }: {
   label: string
   icon: LucideIcon
   value: number
   parts: { label: string; value: number; icon?: LucideIcon }[]
-  to?: string
 }) {
-  const body = (
-    <>
+  return (
+    <div className="rounded-[1.5rem] bg-hero p-5 text-white shadow-lg shadow-hero/25">
       <div className="flex items-center justify-between gap-3">
         <span className="text-sm font-medium text-white/80">{label}</span>
         <Icon className="h-5 w-5 text-white/70" aria-hidden />
@@ -152,15 +150,7 @@ export function MoneyCard({
           </div>
         ))}
       </div>
-    </>
-  )
-  const cls = 'block rounded-[1.5rem] bg-hero p-5 text-white shadow-lg shadow-hero/25'
-  return to ? (
-    <Link to={to} className={`${cls} transition active:scale-[0.99]`}>
-      {body}
-    </Link>
-  ) : (
-    <div className={cls}>{body}</div>
+    </div>
   )
 }
 
