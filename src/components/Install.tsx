@@ -4,12 +4,10 @@ import { useInstall, useStorageKept } from '../lib/pwa'
 
 /**
  * Putting the app on the home screen. Chrome and Edge offer a one-tap install; on an
- * iPhone it is Safari's Share button. `compact` (on the More page) shows only when it can
- * actually be done from here.
+ * iPhone it is Safari's Share button.
  */
-export function InstallCard({ compact = false }: { compact?: boolean }) {
+export function InstallCard() {
   const { state, install } = useInstall()
-  if (compact && state !== 'ready' && state !== 'apple') return null
   const installed = state === 'installed'
   return (
     <div className="card flex items-start gap-3.5 p-4">

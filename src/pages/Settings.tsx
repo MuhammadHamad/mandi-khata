@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { Languages, LogOut, RotateCcw, Store } from 'lucide-react'
+import { AlertTriangle, ChevronRight, CloudUpload, Languages, LogOut, RotateCcw, Store } from 'lucide-react'
 import { InstallCard, StorageNote } from '../components/Install'
 import { LangSwitch } from '../components/Lang'
+import { needYou, openSyncSheet, waitingWords } from '../components/Status'
 import { Card, ConfirmDialog, ErrorNote, Field, Gate, IconBadge, MoneyInput, PageHeader } from '../components/ui'
 import { useAuth } from '../data/auth'
 import { IS_DEMO, backend } from '../data/backend'
-import { useAction, useBooks } from '../data/queries'
+import { useAction, useBooks, useSync } from '../data/queries'
 import type { Derived } from '../lib/books'
 import { plain, toNumber } from '../lib/format'
 import { t } from '../lib/i18n'
@@ -62,6 +63,8 @@ function SettingsForm({ view }: { view: Derived }) {
           <StorageNote />
         </div>
       </div>
+
+      <SyncCard />
 
       <form onSubmit={submit}>
         <Card className="space-y-5 p-4 sm:p-5">
@@ -146,5 +149,32 @@ function SettingsForm({ view }: { view: Derived }) {
         </Card>
       ) : null}
     </div>
+  )
+}
+
+/** Where the changes made on this phone stand, and the list to sort out any trouble. Not in the demo. */
+function SyncCard() {
+  const sync = useSync()
+  if (!sync) return null
+  const trouble = sync.problems.length > 0
+  return (
+    <button
+      type="button"
+      onClick={() => openSyncSheet()}
+      className="card flex w-full items-center gap-3 p-4 text-left transition hover:bg-sunk/50 active:bg-sunk"
+    >
+      <IconBadge icon={trouble ? AlertTriangle : CloudUpload} tone={trouble ? 'bad' : 'bank'} />
+      <span className="min-w-0 flex-1">
+        <span className="block font-semibold">{t('Sync with the server')}</span>
+        <span className="block text-sm text-ink-soft">
+          {trouble
+            ? needYou(sync.problems.length)
+            : sync.waiting
+              ? waitingWords(sync.waiting)
+              : t('Everything is saved on the server')}
+        </span>
+      </span>
+      <ChevronRight className="h-4 w-4 shrink-0 text-ink-faint" aria-hidden />
+    </button>
   )
 }

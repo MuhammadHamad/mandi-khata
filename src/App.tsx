@@ -1,7 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
-import AppShell, { MorePage } from './components/AppShell'
+import AppShell from './components/AppShell'
 import { LangProvider } from './components/Lang'
 import { Loading } from './components/ui'
 import { AuthProvider, useAuth } from './data/auth'
@@ -73,7 +73,7 @@ export default function App() {
                 <Route path="reports" element={<Reports />} />
                 <Route path="report" element={<Navigate to="/reports" replace />} />
                 <Route path="settings" element={<Settings />} />
-                <Route path="more" element={<MorePage />} />
+                <Route path="more" element={<Navigate to="/settings" replace />} />
               </Route>
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

@@ -376,7 +376,7 @@ export function UpdatePrompt() {
 
   if (!needRefresh && !offlineReady) return null
   return (
-    <div className="fixed inset-x-0 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-40 flex justify-center px-4 lg:bottom-6">
+    <div className="fixed inset-x-0 bottom-[calc(6.5rem+env(safe-area-inset-bottom))] z-40 flex justify-center px-4 lg:bottom-6">
       <div role="status" className="flex w-full max-w-md items-center gap-3 rounded-2xl bg-ink px-4 py-3 text-sm text-paper shadow-2xl">
         {needRefresh ? (
           <>

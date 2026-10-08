@@ -39,7 +39,7 @@ add the Roman Urdu to `ur.ts`. `npm run check:i18n` lists any phrase that has no
 
 ## Works offline, installs like an app
 
-The app is a Progressive Web App. Chrome and Edge offer **Install** (in Settings and on the More page, or
+The app is a Progressive Web App. Chrome and Edge offer **Install** (in Settings, or
 the browser's own install button); on an iPhone, Safari's **Share → Add to Home Screen**. Installed or not,
 its pages are kept on the phone, so it opens with no internet. A long press on the icon goes straight to
 New sale, New challan or Khatay.

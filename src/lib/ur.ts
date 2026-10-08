@@ -18,7 +18,6 @@ export const UR: Record<string, string> = {
   Expenses: 'Kharchay',
   Reports: 'Reports',
   Settings: 'Settings',
-  More: 'Aur',
   Language: 'Zubaan',
   'Demo · records stay in this browser': 'Demo · hisaab sirf is browser mein',
   'Sign out': 'Logout karein',

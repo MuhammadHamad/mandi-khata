@@ -1,12 +1,8 @@
 import { useEffect } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import {
-  AlertTriangle,
   BookUser,
   ChartColumn,
-  CloudUpload,
-  ChevronRight,
-  Ellipsis,
   House,
   LogOut,
   Receipt,
@@ -18,16 +14,13 @@ import {
 import type { LucideIcon } from 'lucide-react'
 import { useAuth } from '../data/auth'
 import { IS_DEMO } from '../data/backend'
-import { useBooks, useSync } from '../data/queries'
+import { useBooks } from '../data/queries'
 import { t } from '../lib/i18n'
 import { keepStorage } from '../lib/pwa'
-import { InstallCard } from './Install'
 import { LangSwitch } from './Lang'
-import { OfflineStrip, OnlineDot, OnlineLine, SyncSheet, UpdatePrompt, needYou, openSyncSheet, waitingWords } from './Status'
-import { IconBadge } from './ui'
-import type { Tone } from './ui'
+import { OfflineStrip, OnlineDot, OnlineLine, SyncSheet, UpdatePrompt } from './Status'
 
-type NavItem = { to: string; label: string; Icon: LucideIcon; end?: boolean; tone?: Tone }
+type NavItem = { to: string; label: string; Icon: LucideIcon; end?: boolean }
 
 // Built on each render, so the labels follow the chosen language.
 const mainNav = (): NavItem[] => [
@@ -38,14 +31,11 @@ const mainNav = (): NavItem[] => [
 ]
 
 const moreNav = (): NavItem[] => [
-  { to: '/money', label: t('Cash & bank'), Icon: Wallet, tone: 'brand' },
-  { to: '/expenses', label: t('Expenses'), Icon: Receipt, tone: 'owed' },
-  { to: '/reports', label: t('Reports'), Icon: ChartColumn, tone: 'bank' },
-  { to: '/settings', label: t('Settings'), Icon: Settings, tone: 'neutral' },
+  { to: '/money', label: t('Cash & bank'), Icon: Wallet },
+  { to: '/expenses', label: t('Expenses'), Icon: Receipt },
+  { to: '/reports', label: t('Reports'), Icon: ChartColumn },
+  { to: '/settings', label: t('Settings'), Icon: Settings },
 ]
-
-/** Pages reached from the More tab still light it up on a phone. */
-const UNDER_MORE = ['/more', '/money', '/expenses', '/reports', '/settings']
 
 /** Long forms take the whole phone screen, with their Save button pinned where the tabs were. */
 const isFormPage = (pathname: string) => /\/(new|edit)$/.test(pathname)
@@ -121,14 +111,17 @@ export default function AppShell() {
           {/* Header, on a phone */}
           <header className="flex h-14 items-center justify-between gap-3 border-b border-line-soft bg-ground/90 px-4 backdrop-blur lg:hidden">
             <Brand name={name} />
-            <LangSwitch />
+            <div className="flex shrink-0 items-center gap-1.5">
+              <LangSwitch />
+              <SettingsButton />
+            </div>
           </header>
           <OfflineStrip />
         </div>
 
         <main
           className={`mx-auto w-full max-w-4xl px-4 pt-5 sm:px-6 lg:pt-8 ${
-            formPage ? 'pb-0 lg:pb-12' : 'pb-[calc(6rem+env(safe-area-inset-bottom))] lg:pb-12'
+            formPage ? 'pb-0 lg:pb-12' : 'pb-[calc(6.75rem+env(safe-area-inset-bottom))] lg:pb-12'
           }`}
         >
           <Outlet />
@@ -138,11 +131,11 @@ export default function AppShell() {
       <UpdatePrompt />
       <SyncSheet />
 
-      {/* Tabs, on a phone */}
+      {/* Tabs, on a phone: every part of the app in two rows, so nothing waits behind a menu */}
       {formPage ? null : (
         <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-line-soft bg-paper/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
-          <div className="mx-auto flex max-w-lg">
-            {[...mainNav(), { to: '/more', label: t('More'), Icon: Ellipsis }].map((item) => (
+          <div className="mx-auto grid max-w-lg grid-cols-4 pt-0.5">
+            {[...mainNav(), ...moreNav()].map((item) => (
               <TabLink key={item.to} item={item} />
             ))}
           </div>
@@ -169,81 +162,46 @@ function SideLink({ item: { to, label, Icon, end } }: { item: NavItem }) {
   )
 }
 
+/** Settings on a phone: the gear at the top right of every page, one tap from anywhere. */
+function SettingsButton() {
+  return (
+    <NavLink
+      to="/settings"
+      aria-label={t('Settings')}
+      title={t('Settings')}
+      className={({ isActive }) =>
+        `flex h-10 w-10 items-center justify-center rounded-full transition ${
+          isActive ? 'bg-brand-wash text-brand-deep' : 'text-ink-soft hover:bg-sunk hover:text-ink'
+        }`
+      }
+    >
+      <Settings className="h-[22px] w-[22px]" aria-hidden />
+    </NavLink>
+  )
+}
+
+/** One tab on a phone: a small picture with its name under it, kept short so the page has the room. */
 function TabLink({ item: { to, label, Icon, end } }: { item: NavItem }) {
-  const { pathname } = useLocation()
-  const underMore = to === '/more' && UNDER_MORE.some((p) => pathname.startsWith(p))
   return (
     <NavLink
       to={to}
       end={end}
       className={({ isActive }) =>
-        `flex flex-1 flex-col items-center gap-1 pt-2 pb-1.5 text-[11px] font-semibold transition ${
-          isActive || underMore ? 'text-brand-deep' : 'text-ink-faint'
+        `flex min-w-0 flex-col items-center gap-0.5 pt-1 pb-0.5 text-[11px] leading-tight font-semibold tracking-tight transition ${
+          isActive ? 'text-brand-deep' : 'text-ink-faint'
         }`
       }
     >
       {({ isActive }) => (
         <>
           <span
-            className={`flex h-8 w-14 items-center justify-center rounded-full transition ${
-              isActive || underMore ? 'bg-brand-wash' : ''
-            }`}
+            className={`flex h-[22px] w-11 items-center justify-center rounded-full transition ${isActive ? 'bg-brand-wash' : ''}`}
           >
-            <Icon className="h-[22px] w-[22px]" aria-hidden />
+            <Icon className="h-[18px] w-[18px]" aria-hidden />
           </span>
-          {label}
+          <span className="max-w-full truncate">{label}</span>
         </>
       )}
     </NavLink>
-  )
-}
-
-/** The More tab on a phone: the pages that do not fit in the tab bar. */
-export function MorePage() {
-  const { user, signOut } = useAuth()
-  const sync = useSync()
-  return (
-    <div className="space-y-5">
-      <h1 className="text-2xl font-semibold tracking-tight">{t('More')}</h1>
-      <InstallCard compact />
-      {sync ? (
-        <button
-          type="button"
-          onClick={() => openSyncSheet()}
-          className="card flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-sunk/50 active:bg-sunk"
-        >
-          <IconBadge icon={sync.problems.length ? AlertTriangle : CloudUpload} tone={sync.problems.length ? 'bad' : 'bank'} />
-          <span className="min-w-0 flex-1">
-            <span className="block font-medium">{t('Sync with the server')}</span>
-            <span className="block text-sm text-ink-soft">
-              {sync.problems.length
-                ? needYou(sync.problems.length)
-                : sync.waiting
-                  ? waitingWords(sync.waiting)
-                  : t('Everything is saved on the server')}
-            </span>
-          </span>
-          <ChevronRight className="h-4 w-4 text-ink-faint" aria-hidden />
-        </button>
-      ) : null}
-      <div className="card divide-y divide-line-soft overflow-hidden">
-        {moreNav().map(({ to, label, Icon, tone }) => (
-          <NavLink key={to} to={to} className="flex items-center gap-3 px-4 py-3 font-medium transition hover:bg-sunk/50 active:bg-sunk">
-            <IconBadge icon={Icon} tone={tone} />
-            <span className="flex-1">{label}</span>
-            <ChevronRight className="h-4 w-4 text-ink-faint" aria-hidden />
-          </NavLink>
-        ))}
-      </div>
-      {!IS_DEMO && user ? (
-        <div className="card flex items-center justify-between gap-3 px-4 py-3">
-          <div className="min-w-0 truncate text-sm text-ink-soft">{user.email}</div>
-          <button type="button" className="btn-ghost" onClick={() => void signOut()}>
-            <LogOut className="h-4 w-4" aria-hidden />
-            {t('Sign out')}
-          </button>
-        </div>
-      ) : null}
-    </div>
   )
 }
