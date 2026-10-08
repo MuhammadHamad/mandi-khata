@@ -154,48 +154,6 @@ export function MoneyCard({
   )
 }
 
-/**
- * One figure at a glance, with its picture. The value keeps the page's own
- * ink; any judgement on it (profit or loss) sits under it as `status`.
- */
-export function Stat({
-  label,
-  value,
-  icon,
-  tone = 'neutral',
-  status,
-  detail,
-  to,
-}: {
-  label: string
-  value: string
-  icon?: LucideIcon
-  tone?: Tone
-  status?: ReactNode
-  detail?: ReactNode
-  to?: string
-}) {
-  const body = (
-    <>
-      <div className="flex items-start gap-2.5">
-        {icon ? <IconBadge icon={icon} tone={tone} size="sm" /> : null}
-        <div className={`min-w-0 text-[13px] leading-snug font-medium text-ink-soft ${icon ? 'pt-0.5' : ''}`}>{label}</div>
-      </div>
-      <div className="mt-2 text-xl leading-tight font-semibold tracking-tight sm:text-2xl">{value}</div>
-      {status ? <div className="mt-1 text-sm">{status}</div> : null}
-      {detail ? <div className="mt-1 text-xs text-ink-soft">{detail}</div> : null}
-    </>
-  )
-  const cls = 'card block p-4'
-  return to ? (
-    <Link to={to} className={`${cls} transition hover:shadow-md active:scale-[0.99]`}>
-      {body}
-    </Link>
-  ) : (
-    <div className={cls}>{body}</div>
-  )
-}
-
 function gainWord(loss: boolean, soFar: boolean): string {
   if (soFar) return loss ? t('Loss so far') : t('Profit so far')
   return loss ? t('Loss') : t('Profit')
